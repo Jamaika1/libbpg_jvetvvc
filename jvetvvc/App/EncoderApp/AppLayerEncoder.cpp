@@ -1105,7 +1105,15 @@ void AppLayerEncoder::xCreateLib( std::list<PelUnitBuf*>& recBufList, const int 
   // Video I/O
   m_cVideoIOYuvInputFile.open( m_inputFileName,     false, m_inputBitDepth, m_MSBExtendedBitDepth, m_internalBitDepth );  // read  mode
 #if EXTENSION_360_VIDEO
-  m_cVideoIOYuvInputFile.skipFrames(m_FrameSkip, m_inputFileWidth, m_inputFileHeight, m_InputChromaFormatIDC);
+  if (m_bSVideo)
+  {
+    m_cVideoIOYuvInputFile.skipFrames(m_FrameSkip, m_inputFileWidth, m_inputFileHeight, m_InputChromaFormatIDC);
+  }
+  else
+  {
+    const int sourceHeight = m_isField ? m_iSourceHeightOrg : m_iSourceHeight;
+    m_cVideoIOYuvInputFile.skipFrames(m_FrameSkip, m_iSourceWidth - m_aiPad[0], sourceHeight - m_aiPad[1], m_InputChromaFormatIDC);
+  }
 #else
   const int sourceHeight = m_isField ? m_iSourceHeightOrg : m_iSourceHeight;
   m_cVideoIOYuvInputFile.skipFrames(m_FrameSkip, m_iSourceWidth - m_aiPad[0], sourceHeight - m_aiPad[1], m_InputChromaFormatIDC);
@@ -1201,7 +1209,10 @@ void AppLayerEncoder::createLib( const int layerIdx )
   printChromaFormat();
 
 #if EXTENSION_360_VIDEO
-  m_ext360 = new TExt360AppEncTop( *this, m_layerEncoder.getGOPEncoder()->getExt360Data(), *( m_layerEncoder.getGOPEncoder() ), *m_orgPic );
+  if (m_bSVideo)
+  {
+    m_ext360 = new TExt360AppEncTop( *this, m_cEncLib.getGOPEncoder()->getExt360Data(), *( m_cEncLib.getGOPEncoder() ), *m_orgPic );
+  }
 #endif
 
   if( m_gopBasedTemporalFilterEnabled )
@@ -1245,7 +1256,10 @@ void AppLayerEncoder::destroyLib()
     delete m_filteredOrgPic;
   }
 #if EXTENSION_360_VIDEO
-  delete m_ext360;
+  if (m_bSVideo)
+  {
+    delete m_ext360;
+  }
 #endif
 
   printRateSummary();
@@ -1259,7 +1273,7 @@ bool AppLayerEncoder::encodePrep( bool& eos )
 
   // read input YUV file
 #if EXTENSION_360_VIDEO
-  if( m_ext360->isEnabled() )
+  if (m_bSVideo)
   {
     m_ext360->read( m_cVideoIOYuvInputFile, *m_orgPic, *m_trueOrgPic, ipCSC );
   }
@@ -1337,10 +1351,18 @@ bool AppLayerEncoder::encode()
     if( m_temporalSubsampleRatio > 1 )
     {
 #if EXTENSION_360_VIDEO
-      m_cVideoIOYuvInputFile.skipFrames( m_temporalSubsampleRatio - 1, m_inputFileWidth, m_inputFileHeight, m_InputChromaFormatIDC );
+      if (m_bSVideo)
+      {
+        m_cVideoIOYuvInputFile.skipFrames( m_temporalSubsampleRatio - 1, m_inputFileWidth, m_inputFileHeight, m_InputChromaFormatIDC );
+      }
+      else
+      {
+        const int sourceHeight = m_isField ? m_iSourceHeightOrg : m_iSourceHeight;
+        m_cVideoIOYuvInputFile.skipFrames( m_temporalSubsampleRatio - 1, m_iSourceWidth - m_aiPad[0], sourceHeight - m_aiPad[1], m_InputChromaFormatIDC );
+      }
 #else
-    const int sourceHeight = m_isField ? m_iSourceHeightOrg : m_iSourceHeight;
-    m_cVideoIOYuvInputFile.skipFrames( m_temporalSubsampleRatio - 1, m_iSourceWidth - m_aiPad[0], sourceHeight - m_aiPad[1], m_InputChromaFormatIDC );
+      const int sourceHeight = m_isField ? m_iSourceHeightOrg : m_iSourceHeight;
+      m_cVideoIOYuvInputFile.skipFrames( m_temporalSubsampleRatio - 1, m_iSourceWidth - m_aiPad[0], sourceHeight - m_aiPad[1], m_InputChromaFormatIDC );
 #endif
     }
   }

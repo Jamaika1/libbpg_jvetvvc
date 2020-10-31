@@ -746,6 +746,7 @@ protected:
   int         m_olsPtlIdx[MAX_NUM_OLSS];
 
 #if EXTENSION_360_VIDEO
+  TExt360AppEncCfg* m_bSVideo;
   TExt360AppEncCfg m_ext360;
   friend class TExt360AppEncCfg;
   friend class TExt360AppEncTop;

@@ -1612,9 +1612,12 @@ bool EncAppCfg::parseCfg( int argc, char* argv[] )
    * Set any derived parameters
    */
 #if EXTENSION_360_VIDEO
-  m_inputFileWidth = m_iSourceWidth;
-  m_inputFileHeight = m_iSourceHeight;
-  m_ext360.setMaxCUInfo(m_uiCTUSize, 1 << MIN_CU_LOG2);
+  if (m_bSVideo)
+  {
+    m_inputFileWidth = m_iSourceWidth;
+    m_inputFileHeight = m_iSourceHeight;
+    m_ext360.setMaxCUInfo(m_uiCTUSize, 1 << MIN_CU_LOG2);
+  }
 #endif
 
   if (!inputPathPrefix.empty() && inputPathPrefix.back() != '/' && inputPathPrefix.back() != '\\' )
