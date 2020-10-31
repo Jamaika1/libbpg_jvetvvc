@@ -444,6 +444,13 @@ DecLib::DecLib()
   , m_prefixSEINALUs()
   , m_debugPOC( -1 )
   , m_debugCTU( -1 )
+#if JVET_S0163_ON_TARGETOLS_SUBLAYERS
+  , m_opi( nullptr )
+  , m_mTidExternalSet(false)
+  , m_mTidOpiSet(false)
+  , m_tOlsIdxTidExternalSet(false)
+  , m_tOlsIdxTidOpiSet(false)
+#endif
   , m_vps( nullptr )
   , m_maxDecSubPicIdx(0)
   , m_maxDecSliceAddrInSubPic(-1)
@@ -1834,6 +1841,13 @@ void DecLib::xCheckParameterSetConstraints(const int layerId)
     CHECK(pps->getMixedNaluTypesInPicFlag(), "When gci_no_mixed_nalu_types_in_pic_constraint_flag equal to 1, the value of pps_mixed_nalu_types_in_pic_flag shall be equal to 0")
   }
 
+#if JVET_R0266_GCI
+  if (sps->getProfileTierLevel()->getConstraintInfo()->getNoGdrConstraintFlag())
+  {
+    CHECK(sps->getGDREnabledFlag(), "gci_no_gdr_constraint_flag equal to 1 specifies that sps_gdr_enabled_flag for all pictures in OlsInScope shall be equal to 0");
+  }
+#endif
+
   if (sps->getProfileTierLevel()->getConstraintInfo()->getNoRectSliceConstraintFlag())
   {
     CHECK(pps->getRectSliceFlag(), "When gci_no_rectangular_slice_constraint_flag equal to 1, the value of pps_rect_slice_flag shall be equal to 0")
@@ -1996,6 +2010,9 @@ bool DecLib::xDecodeSlice(InputNALUnit &nalu, int &iSkipFrame, int iPOCLastDispl
   for( auto& naluTemporalId : m_accessUnitNals )
   {
     if (
+#if JVET_S0163_ON_TARGETOLS_SUBLAYERS
+      naluTemporalId.m_nalUnitType != NAL_UNIT_OPI &&
+#endif
       naluTemporalId.m_nalUnitType != NAL_UNIT_DCI
       && naluTemporalId.m_nalUnitType != NAL_UNIT_VPS
       && naluTemporalId.m_nalUnitType != NAL_UNIT_SPS
@@ -2056,6 +2073,11 @@ bool DecLib::xDecodeSlice(InputNALUnit &nalu, int &iSkipFrame, int iPOCLastDispl
                                               "when sps_video_parameter_set_id is equal to 0");
   }
   CHECK((sps->getVPSId() > 0) && (vps == 0), "Invalid VPS");
+
+  if ((sps->getProfileTierLevel()->getMultiLayerEnabledFlag() == 0) && (m_prevLayerID != MAX_INT))
+  {
+    CHECK(m_prevLayerID != nalu.m_nuhLayerId, "All slices in OlsInScope shall have the same value of nuh_layer_id when ptl_multilayer_enabled_flag is equal to 0" );
+  }
 
   if( vps != nullptr && !vps->getIndependentLayerFlag( vps->getGeneralLayerIdx( nalu.m_nuhLayerId ) ) )
   {
@@ -2706,6 +2728,18 @@ void DecLib::updatePrevIRAPAndGDRSubpic()
   }
 }
 
+#if JVET_S0163_ON_TARGETOLS_SUBLAYERS
+void DecLib::xDecodeOPI( InputNALUnit& nalu )
+{
+  m_opi = new OPI();
+  m_HLSReader.setBitstream( &nalu.getBitstream() );
+
+  CHECK( nalu.m_temporalId, "The value of TemporalId of OPI NAL units shall be equal to 0" );
+
+  m_HLSReader.parseOPI( m_opi );
+}
+#endif
+
 void DecLib::xDecodeVPS( InputNALUnit& nalu )
 {
   VPS* vps = new VPS();
@@ -2805,8 +2839,28 @@ bool DecLib::decode(InputNALUnit& nalu, int& iSkipFrame, int& iPOCLastDisplay, i
   {
     case NAL_UNIT_VPS:
       xDecodeVPS( nalu );
+#if JVET_S0163_ON_TARGETOLS_SUBLAYERS
+      if (getTOlsIdxExternalFlag())
+      {
+        m_vps->m_targetOlsIdx = iTargetOlsIdx;
+      }
+      else if (getTOlsIdxOpiFlag())
+      {
+        m_vps->m_targetOlsIdx = m_opi->getOpiOlsIdx();
+      }
+      else
+      {
+        m_vps->m_targetOlsIdx = m_vps->deriveTargetOLSIdx();
+      }
+#else
       m_vps->m_targetOlsIdx = iTargetOlsIdx;
+#endif
       return false;
+#if JVET_S0163_ON_TARGETOLS_SUBLAYERS
+    case NAL_UNIT_OPI:
+      xDecodeOPI( nalu );
+      return false;
+#endif
     case NAL_UNIT_DCI:
       xDecodeDCI( nalu );
       return false;
@@ -2901,7 +2955,9 @@ bool DecLib::decode(InputNALUnit& nalu, int& iSkipFrame, int& iPOCLastDisplay, i
     }
 
     case NAL_UNIT_RESERVED_IRAP_VCL_11:
+#if !JVET_S0163_ON_TARGETOLS_SUBLAYERS
     case NAL_UNIT_RESERVED_IRAP_VCL_12:
+#endif
       msg( NOTICE, "Note: found reserved VCL NAL unit.\n");
       xParsePrefixSEIsForUnknownVCLNal();
       return false;
@@ -3096,6 +3152,9 @@ bool DecLib::isNewPicture(std::ifstream *bitstreamFile, class InputByteStream *b
 
       // NUT that indicate the start of a new picture
       case NAL_UNIT_ACCESS_UNIT_DELIMITER:
+#if JVET_S0163_ON_TARGETOLS_SUBLAYERS
+      case NAL_UNIT_OPI:
+#endif
       case NAL_UNIT_DCI:
       case NAL_UNIT_VPS:
       case NAL_UNIT_SPS:
@@ -3118,7 +3177,9 @@ bool DecLib::isNewPicture(std::ifstream *bitstreamFile, class InputByteStream *b
       case NAL_UNIT_CODED_SLICE_CRA:
       case NAL_UNIT_CODED_SLICE_GDR:
       case NAL_UNIT_RESERVED_IRAP_VCL_11:
+#if !JVET_S0163_ON_TARGETOLS_SUBLAYERS
       case NAL_UNIT_RESERVED_IRAP_VCL_12:
+#endif
         ret = checkPictureHeaderInSliceHeaderFlag(nalu);
         finished = true;
         break;

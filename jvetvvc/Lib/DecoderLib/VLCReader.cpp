@@ -1344,6 +1344,12 @@ void HLSyntaxReader::parseSPS(SPS* pcSPS)
   READ_FLAG(uiCode, "sps_gdr_enabled_flag");
   pcSPS->setGDREnabledFlag(uiCode);
 
+#if JVET_R0266_GCI
+  if (pcSPS->getProfileTierLevel()->getConstraintInfo()->getNoGdrConstraintFlag())
+  {
+    CHECK(uiCode != 0, "When gci_no_gdr_constraint_flag equal to 1 , the value of sps_gdr_enabled_flag shall be equal to 0");
+  }
+#endif
 
   READ_FLAG(uiCode, "sps_ref_pic_resampling_enabled_flag");          pcSPS->setRprEnabledFlag(uiCode);
   if (pcSPS->getProfileTierLevel()->getConstraintInfo()->getNoRprConstraintFlag())
@@ -2108,6 +2114,44 @@ void HLSyntaxReader::parseSPS(SPS* pcSPS)
   }
   xReadRbspTrailingBits();
 }
+
+#if JVET_S0163_ON_TARGETOLS_SUBLAYERS
+void HLSyntaxReader::parseOPI(OPI* opi)
+{
+#if ENABLE_TRACING
+  xTraceOPIHeader();
+#endif
+  uint32_t  symbol;
+
+  READ_FLAG(symbol, "opi_ols_info_present_flag");
+  opi->setOlsInfoPresentFlag(symbol);
+  READ_FLAG(symbol, "opi_htid_info_present_flag");
+  opi->setHtidInfoPresentFlag(symbol);
+
+  if (opi->getOlsInfoPresentFlag()) 
+  {
+    READ_UVLC(symbol, "opi_ols_idx");  
+    opi->setOpiOlsIdx(symbol);
+  }
+
+  if (opi->getHtidInfoPresentFlag()) 
+  {
+    READ_CODE(3, symbol, "opi_htid_plus1");
+    opi->setOpiHtidPlus1(symbol);
+  }
+
+  READ_FLAG(symbol, "opi_extension_flag");
+  if (symbol)
+  {
+    while (xMoreRbspData())
+    {
+      READ_FLAG(symbol, "opi_extension_data_flag");
+    }
+  }
+  xReadRbspTrailingBits();
+}
+#endif
+
 
 void HLSyntaxReader::parseDCI(DCI* dci)
 {
