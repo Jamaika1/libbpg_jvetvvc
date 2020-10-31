@@ -49,7 +49,9 @@
 
 #include <math.h>
 #include <deque>
+#include <iostream>
 #include <chrono>
+#include <ctime>
 #include <cinttypes>
 
 #include "CommonLib/UnitTools.h"
@@ -4446,8 +4448,28 @@ void EncGOP::xCalculateAddPSNR(Picture* pcPic, PelUnitBuf cPicD, const AccessUni
   }
   if (m_pcCfg->getDependentRAPIndicationSEIEnabled() && pcSlice->isDRAP()) c = 'D';
 
+  static double framesToBeEncodedStart = 0.0;
   if( g_verbosity >= NOTICE )
   {
+    if (m_pcCfg->getFramesToBeEncoded() == 0)
+    {
+    }
+    else
+    {
+        framesToBeEncodedStart++;
+        if ((100*framesToBeEncodedStart/m_pcCfg->getFramesToBeEncoded()) == 100)
+        {
+        }
+        else if ((100*framesToBeEncodedStart/m_pcCfg->getFramesToBeEncoded()) >= 10)
+        {
+            msg( NOTICE, "%c", 176 );
+        }
+        else
+        {
+            msg( NOTICE, "%c%c", 176, 176 );
+        }
+        msg( NOTICE, "%.03f%% ", (100*framesToBeEncodedStart/m_pcCfg->getFramesToBeEncoded()));
+    }
     msg( NOTICE, "POC %4d LId: %2d TId: %1d ( %s, %c-SLICE, QP %d ) %10d bits",
          pcSlice->getPOC(),
          pcSlice->getPic()->layerId,
@@ -4594,6 +4616,9 @@ void EncGOP::xCalculateAddPSNR(Picture* pcPic, PelUnitBuf cPicD, const AccessUni
     {
       msg( NOTICE, "\nPSNR2: [Y %6.4lf dB    U %6.4lf dB    V %6.4lf dB]", upscaledPSNR[COMPONENT_Y], upscaledPSNR[COMPONENT_Cb], upscaledPSNR[COMPONENT_Cr] );
     }
+    auto startTime  = std::chrono::steady_clock::now();
+    std::time_t startTime2 = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    msg( NOTICE, "         @ %s", std::ctime(&startTime2) );
   }
   else if( g_verbosity >= INFO )
   {
