@@ -40,7 +40,7 @@
 
 // forward declarations
 class EncCfg;
-class EncLib;
+class LayerEncoder;
 class EncGOP;
 
 
@@ -50,17 +50,17 @@ class SEIEncoder
 public:
   SEIEncoder()
     :m_pcCfg(NULL)
-    ,m_pcEncLib(NULL)
+    ,m_layerEncoder(NULL)
     ,m_pcEncGOP(NULL)
   ,m_isInitialized(false)
   {};
   virtual ~SEIEncoder(){};
 
-  void init(EncCfg* encCfg, EncLib *encTop, EncGOP *encGOP)
+  void init(EncCfg* encCfg, LayerEncoder *layerEncoder, EncGOP *encGOP)
   {
     m_pcCfg = encCfg;
     m_pcEncGOP = encGOP;
-    m_pcEncLib = encTop;
+    m_layerEncoder = layerEncoder;
     m_isInitialized = true;
   };
 
@@ -86,9 +86,13 @@ public:
   void initSEIContentLightLevel(SEIContentLightLevelInfo *sei);
   void initSEIAmbientViewingEnvironment(SEIAmbientViewingEnvironment *sei);
   void initSEIContentColourVolume(SEIContentColourVolume *sei);
+#if JVET_T0053_ANNOTATED_REGIONS_SEI
+  bool initSEIAnnotatedRegions(SEIAnnotatedRegions *sei, int currPOC);
+  void readAnnotatedRegionSEI(std::istream &fic, SEIAnnotatedRegions *seiAnnoRegion, bool &failed);
+#endif
 private:
   EncCfg* m_pcCfg;
-  EncLib* m_pcEncLib;
+  LayerEncoder* m_layerEncoder;
   EncGOP* m_pcEncGOP;
 
   bool m_isInitialized;

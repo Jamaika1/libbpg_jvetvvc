@@ -3,7 +3,7 @@
  * and contributor rights, including patent rights, and no such rights are
  * granted under this license.
  *
- * Copyright (c) 2010-2014, ITU/ISO/IEC
+ * Copyright (c) 2010-2020, ITU/ISO/IEC
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,25 +31,37 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** \file     TEncAnalyze.cpp
-    \brief    encoder analyzer class
+/** \file     EncLibCommon.h
+    \brief    Common encoder library class (header)
 */
 
-#include "LayerEncoder.h"
-#include "Analyze.h"
+#pragma once
+#include <list>
+#include <fstream>
+#include "CommonLib/Slice.h"
+#include "CommonLib/ParameterSetManager.h"
 
-//! \ingroup TLibEncoder
-//! \{
+class EncoderSharedComponents
+{
+private:
+  int                       m_apsIdStart;         ///< ALF APS id, APS id space is shared across all layers
+  ParameterSetMap<SPS>      m_spsMap;             ///< SPS, it is shared across all layers
+  ParameterSetMap<PPS>      m_ppsMap;             ///< PPS, it is shared across all layers
+  ParameterSetMap<APS>      m_apsMap;             ///< APS, it is shared across all layers
+  PicList                   m_cListPic;           ///< DPB, it is shared across all layers
+  VPS                       m_vps;
+  int                       m_layerDecPicBuffering[MAX_VPS_LAYERS*MAX_TLAYER];  // to store number of required DPB pictures per layer
 
-//////////////////////////////////////////////////////////////////////
-// Construction/Destruction
-//////////////////////////////////////////////////////////////////////
+public:
+  EncoderSharedComponents();
+  virtual ~EncoderSharedComponents();
 
-Analyze             m_gcAnalyzeAll;
-Analyze             m_gcAnalyzeI;
-Analyze             m_gcAnalyzeP;
-Analyze             m_gcAnalyzeB;
+  int&                     getApsIdStart()         { return m_apsIdStart; }
+  PicList&                 getPictureBuffer()      { return m_cListPic;   }
+  ParameterSetMap<SPS>&    getSpsMap()             { return m_spsMap;     }
+  ParameterSetMap<PPS>&    getPpsMap()             { return m_ppsMap;     }
+  ParameterSetMap<APS>&    getApsMap()             { return m_apsMap;     }
+  VPS*                     getVPS()                { return &m_vps;       }
+  int*                     getDecPicBuffering()    { return m_layerDecPicBuffering; }
+};
 
-Analyze             m_gcAnalyzeAll_in;
-
-//! \}

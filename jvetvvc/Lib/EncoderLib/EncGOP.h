@@ -74,7 +74,7 @@
 //! \ingroup EncoderLib
 //! \{
 
-class EncLib;
+class LayerEncoder;
 
 // ====================================================================================================================
 // Class definition
@@ -131,7 +131,7 @@ private:
   int                     m_lastRasPoc;
 
   //  Access channel
-  EncLib*                 m_pcEncLib;
+  LayerEncoder*           m_layerEncoder;
   EncCfg*                 m_pcCfg;
   EncSlice*               m_pcSliceEncoder;
   PicList*                m_pcListPic;
@@ -208,13 +208,11 @@ public:
   void  create      ();
   void  destroy     ();
 
-  void  init        ( EncLib* pcEncLib );
+  void  init        ( LayerEncoder* layerEncoder );
 
   void  compressGOP ( int iPOCLast, int iNumPicRcvd, PicList& rcListPic, std::list<PelUnitBuf*>& rcListPicYuvRec,
-                      bool isField, bool isTff, const InputColourSpaceConversion snr_conversion, const bool printFrameMSE
-                    , bool isEncodeLtRef
-                    , const int picIdInGOP
-  );
+                      bool isField, bool isTff, const InputColourSpaceConversion snr_conversion, const bool printFrameMSE,
+                      bool printMSSSIM, bool isEncodeLtRef, const int picIdInGOP);
   void  xAttachSliceDataToNalUnit (OutputNALUnit& rNalu, OutputBitstream* pcBitstreamRedirect);
 
 
@@ -236,7 +234,8 @@ public:
   void      setLastLTRefPoc(int iLastLTRefPoc) { m_lastLTRefPoc = iLastLTRefPoc; }
   int       getLastLTRefPoc() const { return m_lastLTRefPoc; }
 
-  void  printOutSummary( uint32_t uiNumAllPicCoded, bool isField, const bool printMSEBasedSNR, const bool printSequenceMSE, const bool printHexPsnr, const bool printRprPSNR, const BitDepths &bitDepths );
+  void  printOutSummary( uint32_t uiNumAllPicCoded, bool isField, const bool printMSEBasedSNR, const bool printSequenceMSE,
+    const bool printMSSSIM, const bool printHexPsnr, const bool printRprPSNR, const BitDepths &bitDepths );
 #if W0038_DB_OPT
   uint64_t  preLoopFilterPicAndCalcDist( Picture* pcPic );
 #endif
@@ -274,18 +273,17 @@ protected:
   void copyBuftoFrame       ( Picture* pcPic );
 #endif
 
-  void  xCalculateAddPSNRs(const bool isField, const bool isFieldTopFieldFirst, const int iGOPid, Picture* pcPic, const AccessUnit&accessUnit, PicList &rcListPic, int64_t dEncTime, const InputColourSpaceConversion snr_conversion, const bool printFrameMSE, double* PSNR_Y
-    , bool isEncodeLtRef
-  );
-  void  xCalculateAddPSNR(Picture* pcPic, PelUnitBuf cPicD, const AccessUnit&, double dEncTime, const InputColourSpaceConversion snr_conversion, const bool printFrameMSE, double* PSNR_Y
-    , bool isEncodeLtRef
-  );
+  void  xCalculateAddPSNRs(const bool isField, const bool isFieldTopFieldFirst, const int iGOPid, Picture* pcPic,
+    const AccessUnit&accessUnit, PicList &rcListPic, int64_t dEncTime, const InputColourSpaceConversion snr_conversion,
+    const bool printFrameMSE, const bool printMSSSIM, double* PSNR_Y, bool isEncodeLtRef);
+  void  xCalculateAddPSNR(Picture* pcPic, PelUnitBuf cPicD, const AccessUnit&, double dEncTime, const InputColourSpaceConversion snr_conversion,
+    const bool printFrameMSE, const bool printMSSSIM, double* PSNR_Y, bool isEncodeLtRef);
   void  xCalculateInterlacedAddPSNR( Picture* pcPicOrgFirstField, Picture* pcPicOrgSecondField,
                                      PelUnitBuf cPicRecFirstField, PelUnitBuf cPicRecSecondField,
-                                     const InputColourSpaceConversion snr_conversion, const bool printFrameMSE, double* PSNR_Y
-                                    , bool isEncodeLtRef
-  );
-
+                                     const InputColourSpaceConversion snr_conversion, const bool printFrameMSE,
+                                     const bool printMSSSIM, double* PSNR_Y, bool isEncodeLtRef);
+  double xCalculateMSSSIM (const Pel* org, const int orgStride, const Pel* rec, const int recStride,
+    const int width, const int height, const uint32_t bitDepth);
   uint64_t xFindDistortionPlane(const CPelBuf& pic0, const CPelBuf& pic1, const uint32_t rshift
 #if ENABLE_QPA
                             , const uint32_t chromaShiftHor = 0, const uint32_t chromaShiftVer = 0
@@ -318,6 +316,9 @@ protected:
   void xWriteTrailingSEIMessages (SEIMessages& seiMessages, AccessUnit &accessUnit, int temporalId);
   void xWriteDuSEIMessages       (SEIMessages& duInfoSeiMessages, AccessUnit &accessUnit, int temporalId, std::deque<DUData> &duData);
 
+#if JVET_S0163_ON_TARGETOLS_SUBLAYERS
+  int xWriteOPI (AccessUnit &accessUnit, const OPI *opi);
+#endif
   int xWriteVPS (AccessUnit &accessUnit, const VPS *vps);
   int xWriteDCI (AccessUnit &accessUnit, const DCI *dci);
   int xWriteSPS( AccessUnit &accessUnit, const SPS *sps, const int layerId = 0 );

@@ -37,7 +37,7 @@
 
 #include "EncSlice.h"
 
-#include "EncLib.h"
+#include "LayerEncoder.h"
 #include "CommonLib/UnitTools.h"
 #include "CommonLib/Picture.h"
 #if K0149_BLOCK_STATISTICS
@@ -79,25 +79,25 @@ void EncSlice::destroy()
   m_viRdPicQp.clear();
 }
 
-void EncSlice::init( EncLib* pcEncLib, const SPS& sps )
+void EncSlice::init( LayerEncoder* layerEncoder, const SPS& sps )
 {
-  m_pcCfg             = pcEncLib;
-  m_pcLib             = pcEncLib;
-  m_pcListPic         = pcEncLib->getListPic();
+  m_pcCfg             = layerEncoder;
+  m_layerEncoder      = layerEncoder;
+  m_pcListPic         = layerEncoder->getListPic();
 
-  m_pcGOPEncoder      = pcEncLib->getGOPEncoder();
-  m_pcCuEncoder       = pcEncLib->getCuEncoder();
-  m_pcInterSearch     = pcEncLib->getInterSearch();
-  m_CABACWriter       = pcEncLib->getCABACEncoder()->getCABACWriter   (&sps);
-  m_CABACEstimator    = pcEncLib->getCABACEncoder()->getCABACEstimator(&sps);
-  m_pcTrQuant         = pcEncLib->getTrQuant();
-  m_pcRdCost          = pcEncLib->getRdCost();
+  m_pcGOPEncoder      = layerEncoder->getGOPEncoder();
+  m_pcCuEncoder       = layerEncoder->getCuEncoder();
+  m_pcInterSearch     = layerEncoder->getInterSearch();
+  m_CABACWriter       = layerEncoder->getCABACEncoder()->getCABACWriter   (&sps);
+  m_CABACEstimator    = layerEncoder->getCABACEncoder()->getCABACEstimator(&sps);
+  m_pcTrQuant         = layerEncoder->getTrQuant();
+  m_pcRdCost          = layerEncoder->getRdCost();
 
   // create lambda and QP arrays
   m_vdRdPicLambda.resize(m_pcCfg->getDeltaQpRD() * 2 + 1 );
   m_vdRdPicQp.resize(    m_pcCfg->getDeltaQpRD() * 2 + 1 );
   m_viRdPicQp.resize(    m_pcCfg->getDeltaQpRD() * 2 + 1 );
-  m_pcRateCtrl        = pcEncLib->getRateCtrl();
+  m_pcRateCtrl        = layerEncoder->getRateCtrl();
 }
 
 void
@@ -347,7 +347,7 @@ void EncSlice::initEncSlice(Picture* pcPic, const int pocLast, const int pocCurr
     rpcSlice->setSignDataHidingEnabledFlag( m_pcCfg->getSignDataHidingEnabledFlag() );
     rpcSlice->setTSResidualCodingDisabledFlag( false );
 
-    CHECK( (m_pcCfg->getDepQuantEnabledFlag() || m_pcCfg->getSignDataHidingEnabledFlag() ) 
+    CHECK( (m_pcCfg->getDepQuantEnabledFlag() || m_pcCfg->getSignDataHidingEnabledFlag() )
            && rpcSlice->getTSResidualCodingDisabledFlag() , "TSRC cannot be bypassed if either DQ or SDH are enabled at slice level.");
   }
   else
@@ -1133,7 +1133,7 @@ void EncSlice::setSearchRange( Slice* pcSlice )
   }
 }
 
-void EncSlice::setLosslessSlice(Picture* pcPic, bool islossless) 
+void EncSlice::setLosslessSlice(Picture* pcPic, bool islossless)
 {
   Slice* slice = pcPic->slices[getSliceSegmentIdx()];
   slice->setLossless(islossless);
@@ -1299,9 +1299,9 @@ void EncSlice::compressSlice( Picture* pcPic, const bool bCompressEntireSlice, c
   m_CABACEstimator->initCtxModels( *pcSlice );
 
 #if ENABLE_SPLIT_PARALLELISM
-  for( int jId = 1; jId < m_pcLib->getNumCuEncStacks(); jId++ )
+  for( int jId = 1; jId < m_layerEncoder->getNumCuEncStacks(); jId++ )
   {
-    CABACWriter* cw = m_pcLib->getCABACEncoder( jId )->getCABACEstimator( pcSlice->getSPS() );
+    CABACWriter* cw = m_layerEncoder->getCABACEncoder( jId )->getCABACEstimator( pcSlice->getSPS() );
     cw->initCtxModels( *pcSlice );
   }
 
@@ -1354,9 +1354,9 @@ void EncSlice::compressSlice( Picture* pcPic, const bool bCompressEntireSlice, c
     {
       m_CABACEstimator->initCtxModels (*pcSlice);
 #if ENABLE_SPLIT_PARALLELISM
-      for (int jId = 1; jId < m_pcLib->getNumCuEncStacks(); jId++)
+      for (int jId = 1; jId < m_layerEncoder->getNumCuEncStacks(); jId++)
       {
-        CABACWriter* cw = m_pcLib->getCABACEncoder (jId)->getCABACEstimator (pcSlice->getSPS());
+        CABACWriter* cw = m_layerEncoder->getCABACEncoder (jId)->getCABACEstimator (pcSlice->getSPS());
         cw->initCtxModels (*pcSlice);
       }
 #endif
@@ -1376,7 +1376,7 @@ void EncSlice::compressSlice( Picture* pcPic, const bool bCompressEntireSlice, c
   }
   else
   {
-    bool doPlt = m_pcLib->getPltEnc();
+    bool doPlt = m_layerEncoder->getPltEnc();
     m_pcCuEncoder->getModeCtrl()->setPltEnc(doPlt);
   }
 
@@ -1388,8 +1388,8 @@ void EncSlice::compressSlice( Picture* pcPic, const bool bCompressEntireSlice, c
   m_pcInterSearch->resetAffineMVList();
   m_pcInterSearch->resetUniMvList();
   ::memset(g_isReusedUniMVsFilled, 0, sizeof(g_isReusedUniMVsFilled));
-  encodeCtus( pcPic, bCompressEntireSlice, bFastDeltaQP, m_pcLib );
-  if (checkPLTRatio) m_pcLib->checkPltStats( pcPic );
+  encodeCtus( pcPic, bCompressEntireSlice, bFastDeltaQP, m_layerEncoder );
+  if (checkPLTRatio) m_layerEncoder->checkPltStats( pcPic );
 }
 
 void EncSlice::checkDisFracMmvd( Picture* pcPic, uint32_t startCtuTsAddr, uint32_t boundingCtuTsAddr )
@@ -1469,7 +1469,7 @@ void EncSlice::setJointCbCrModes( CodingStructure& cs, const Position topLeftLum
 }
 
 
-void EncSlice::encodeCtus( Picture* pcPic, const bool bCompressEntireSlice, const bool bFastDeltaQP, EncLib* pEncLib )
+void EncSlice::encodeCtus( Picture* pcPic, const bool bCompressEntireSlice, const bool bFastDeltaQP, LayerEncoder* layerEncoder )
 {
   CodingStructure&  cs            = *pcPic->cs;
   Slice* pcSlice                  = cs.slice;
@@ -1482,11 +1482,11 @@ void EncSlice::encodeCtus( Picture* pcPic, const bool bCompressEntireSlice, cons
 #if ENABLE_SPLIT_PARALLELISM
   const int       dataId          = 0;
 #endif
-  CABACWriter*    pCABACWriter    = pEncLib->getCABACEncoder( PARL_PARAM0( dataId ) )->getCABACEstimator( pcSlice->getSPS() );
-  TrQuant*        pTrQuant        = pEncLib->getTrQuant( PARL_PARAM0( dataId ) );
-  RdCost*         pRdCost         = pEncLib->getRdCost( PARL_PARAM0( dataId ) );
-  EncCfg*         pCfg            = pEncLib;
-  RateCtrl*       pRateCtrl       = pEncLib->getRateCtrl();
+  CABACWriter*    pCABACWriter    = layerEncoder->getCABACEncoder( PARL_PARAM0( dataId ) )->getCABACEstimator( pcSlice->getSPS() );
+  TrQuant*        pTrQuant        = layerEncoder->getTrQuant( PARL_PARAM0( dataId ) );
+  RdCost*         pRdCost         = layerEncoder->getRdCost( PARL_PARAM0( dataId ) );
+  EncCfg*         pCfg            = layerEncoder;
+  RateCtrl*       pRateCtrl       = layerEncoder->getRateCtrl();
   pRdCost->setLosslessRDCost(pcSlice->isLossless());
 #if RDOQ_CHROMA_LAMBDA
   pTrQuant    ->setLambdas( pcSlice->getLambdas() );
@@ -1569,7 +1569,7 @@ void EncSlice::encodeCtus( Picture* pcPic, const bool bCompressEntireSlice, cons
       cs.resetPrevPLT(cs.prevPLT);
       prevQP[0] = prevQP[1] = pcSlice->getSliceQp();
     }
-    else if (cs.pps->ctuIsTileColBd( ctuXPosInCtus ) && pEncLib->getEntropyCodingSyncEnabledFlag())
+    else if (cs.pps->ctuIsTileColBd( ctuXPosInCtus ) && layerEncoder->getEntropyCodingSyncEnabledFlag())
     {
       // reset and then update contexts to the state at the end of the top CTU (if within current slice and tile).
       pCABACWriter->initCtxModels( *pcSlice );
@@ -1577,8 +1577,8 @@ void EncSlice::encodeCtus( Picture* pcPic, const bool bCompressEntireSlice, cons
       if( cs.getCURestricted( pos.offset(0, -1), pos, pcSlice->getIndependentSliceIdx(), cs.pps->getTileIdx( pos ), CH_L ) )
       {
         // Top is available, we use it.
-        pCABACWriter->getCtx() = pEncLib->m_entropyCodingSyncContextState;
-        cs.setPrevPLT(pEncLib->m_palettePredictorSyncState);
+        pCABACWriter->getCtx() = layerEncoder->m_entropyCodingSyncContextState;
+        cs.setPrevPLT(layerEncoder->m_palettePredictorSyncState);
       }
       prevQP[0] = prevQP[1] = pcSlice->getSliceQp();
     }
@@ -1675,12 +1675,12 @@ void EncSlice::encodeCtus( Picture* pcPic, const bool bCompressEntireSlice, cons
     }
     if (pcSlice->getSPS()->getUseLmcs())
     {
-      m_pcCuEncoder->setDecCuReshaperInEncCU(m_pcLib->getReshaper(), pcSlice->getSPS()->getChromaFormatIdc());
+      m_pcCuEncoder->setDecCuReshaperInEncCU(m_layerEncoder->getReshaper(), pcSlice->getSPS()->getChromaFormatIdc());
 
 #if ENABLE_SPLIT_PARALLELISM
-      for (int jId = 1; jId < m_pcLib->getNumCuEncStacks(); jId++)
+      for (int jId = 1; jId < m_layerEncoder->getNumCuEncStacks(); jId++)
       {
-        m_pcLib->getCuEncoder(jId)->setDecCuReshaperInEncCU(m_pcLib->getReshaper(jId), pcSlice->getSPS()->getChromaFormatIdc());
+        m_layerEncoder->getCuEncoder(jId)->setDecCuReshaperInEncCU(m_layerEncoder->getReshaper(jId), pcSlice->getSPS()->getChromaFormatIdc());
       }
 #endif
     }
@@ -1709,10 +1709,10 @@ void EncSlice::encodeCtus( Picture* pcPic, const bool bCompressEntireSlice, cons
 #endif
 
     // Store probabilities of first CTU in line into buffer - used only if wavefront-parallel-processing is enabled.
-    if( cs.pps->ctuIsTileColBd( ctuXPosInCtus ) && pEncLib->getEntropyCodingSyncEnabledFlag() )
+    if( cs.pps->ctuIsTileColBd( ctuXPosInCtus ) && layerEncoder->getEntropyCodingSyncEnabledFlag() )
     {
-      pEncLib->m_entropyCodingSyncContextState = pCABACWriter->getCtx();
-      cs.storePrevPLT(pEncLib->m_palettePredictorSyncState);
+      layerEncoder->m_entropyCodingSyncContextState = pCABACWriter->getCtx();
+      cs.storePrevPLT(layerEncoder->m_palettePredictorSyncState);
     }
 
     int actualBits = int(cs.fracBits >> SCALE_BITS);

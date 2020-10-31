@@ -3,7 +3,7 @@
  * and contributor rights, including patent rights, and no such rights are
  * granted under this license.
  *
- * Copyright (c) 2010-2014, ITU/ISO/IEC
+ * Copyright (c) 2010-2020, ITU/ISO/IEC
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,25 +31,22 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** \file     TEncAnalyze.cpp
-    \brief    encoder analyzer class
+/** \file     EncLibCommon.cpp
+    \brief    Common encoder library class
 */
 
-#include "LayerEncoder.h"
-#include "Analyze.h"
+#include "CommonLib/CommonDef.h"
+#include "EncoderSharedComponents.h"
 
-//! \ingroup TLibEncoder
-//! \{
+EncoderSharedComponents::EncoderSharedComponents()
+  : m_apsIdStart( ALF_CTB_MAX_NUM_APS )
+  , m_spsMap( MAX_NUM_SPS )
+  , m_ppsMap( MAX_NUM_PPS )
+  , m_apsMap( MAX_NUM_APS * MAX_NUM_APS_TYPE )
+{
+  std::memset( m_layerDecPicBuffering, 0, sizeof( m_layerDecPicBuffering ) );
+}
 
-//////////////////////////////////////////////////////////////////////
-// Construction/Destruction
-//////////////////////////////////////////////////////////////////////
-
-Analyze             m_gcAnalyzeAll;
-Analyze             m_gcAnalyzeI;
-Analyze             m_gcAnalyzeP;
-Analyze             m_gcAnalyzeB;
-
-Analyze             m_gcAnalyzeAll_in;
-
-//! \}
+EncoderSharedComponents::~EncoderSharedComponents()
+{
+}

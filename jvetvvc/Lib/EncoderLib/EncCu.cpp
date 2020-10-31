@@ -37,15 +37,14 @@
 
 #include "EncCu.h"
 
-#include "EncLib.h"
+#include "LayerEncoder.h"
 #include "Analyze.h"
 #include "AQp.h"
 
 #include "CommonLib/dtrace_codingstruct.h"
 #include "CommonLib/Picture.h"
 #include "CommonLib/UnitTools.h"
-#include "MCTS.h"
-
+#include "CommonLib/MCTS.h"
 
 #include "CommonLib/dtrace_buffer.h"
 
@@ -217,25 +216,25 @@ EncCu::~EncCu()
 
 
 
-/** \param    pcEncLib      pointer of encoder class
+/** \param    layerEncoder      pointer of encoder class
  */
-void EncCu::init( EncLib* pcEncLib, const SPS& sps PARL_PARAM( const int tId ) )
+void EncCu::init( LayerEncoder* layerEncoder, const SPS& sps PARL_PARAM( const int tId ) )
 {
-  m_pcEncCfg           = pcEncLib;
-  m_pcIntraSearch      = pcEncLib->getIntraSearch( PARL_PARAM0( tId ) );
-  m_pcInterSearch      = pcEncLib->getInterSearch( PARL_PARAM0( tId ) );
-  m_pcTrQuant          = pcEncLib->getTrQuant( PARL_PARAM0( tId ) );
-  m_pcRdCost           = pcEncLib->getRdCost ( PARL_PARAM0( tId ) );
-  m_CABACEstimator     = pcEncLib->getCABACEncoder( PARL_PARAM0( tId ) )->getCABACEstimator( &sps );
+  m_pcEncCfg           = layerEncoder;
+  m_pcIntraSearch      = layerEncoder->getIntraSearch( PARL_PARAM0( tId ) );
+  m_pcInterSearch      = layerEncoder->getInterSearch( PARL_PARAM0( tId ) );
+  m_pcTrQuant          = layerEncoder->getTrQuant( PARL_PARAM0( tId ) );
+  m_pcRdCost           = layerEncoder->getRdCost ( PARL_PARAM0( tId ) );
+  m_CABACEstimator     = layerEncoder->getCABACEncoder( PARL_PARAM0( tId ) )->getCABACEstimator( &sps );
   m_CABACEstimator->setEncCu(this);
-  m_CtxCache           = pcEncLib->getCtxCache( PARL_PARAM0( tId ) );
-  m_pcRateCtrl         = pcEncLib->getRateCtrl();
-  m_pcSliceEncoder     = pcEncLib->getSliceEncoder();
+  m_CtxCache           = layerEncoder->getCtxCache( PARL_PARAM0( tId ) );
+  m_pcRateCtrl         = layerEncoder->getRateCtrl();
+  m_pcSliceEncoder     = layerEncoder->getSliceEncoder();
 #if ENABLE_SPLIT_PARALLELISM
-  m_pcEncLib           = pcEncLib;
+  m_pcEncLib           = layerEncoder;
   m_dataId             = tId;
 #endif
-  m_pcLoopFilter       = pcEncLib->getLoopFilter();
+  m_pcLoopFilter       = layerEncoder->getLoopFilter();
   m_GeoCostList.init(GEO_NUM_PARTITION_MODE, m_pcEncCfg->getMaxNumGeoCand());
   m_AFFBestSATDCost = MAX_DOUBLE;
 
@@ -1941,7 +1940,7 @@ bool EncCu::xCheckRDCostIntra(CodingStructure *&tempCS, CodingStructure *&bestCS
 void EncCu::xCheckPLT(CodingStructure *&tempCS, CodingStructure *&bestCS, Partitioner &partitioner, const EncTestMode& encTestMode)
 {
   if (((partitioner.currArea().lumaSize().width * partitioner.currArea().lumaSize().height <= 16) && (isLuma(partitioner.chType)) )
-        || ((partitioner.currArea().chromaSize().width * partitioner.currArea().chromaSize().height <= 16) && (!isLuma(partitioner.chType)) && partitioner.isSepTree(*tempCS) ) 
+        || ((partitioner.currArea().chromaSize().width * partitioner.currArea().chromaSize().height <= 16) && (!isLuma(partitioner.chType)) && partitioner.isSepTree(*tempCS) )
       || (partitioner.isLocalSepTree(*tempCS)  && (!isLuma(partitioner.chType))  )  )
   {
     return;

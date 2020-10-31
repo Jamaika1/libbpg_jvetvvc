@@ -58,7 +58,7 @@
 //! \ingroup EncoderLib
 //! \{
 
-class EncLib;
+class LayerEncoder;
 class HLSWriter;
 class EncSlice;
 
@@ -200,7 +200,7 @@ private:
   int                   m_ctuIbcSearchRangeX;
   int                   m_ctuIbcSearchRangeY;
 #if ENABLE_SPLIT_PARALLELISM
-  EncLib*               m_pcEncLib;
+  LayerEncoder*               m_pcEncLib;
 #endif
   int                   m_bestBcwIdx[2];
   double                m_bestBcwCost[2];
@@ -215,7 +215,7 @@ private:
   double                m_sbtCostSave[2];
 public:
   /// copy parameters from encoder class
-  void  init                ( EncLib* pcEncLib, const SPS& sps PARL_PARAM( const int jId = 0 ) );
+  void  init                ( LayerEncoder* layerEncoder, const SPS& sps PARL_PARAM( const int jId = 0 ) );
 
   void setDecCuReshaperInEncCU(EncReshape* pcReshape, ChromaFormat chromaFormatIDC) { initDecCuReshaper((Reshape*) pcReshape, chromaFormatIDC); }
   /// create internal buffers

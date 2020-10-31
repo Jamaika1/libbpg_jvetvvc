@@ -48,11 +48,11 @@
 #include "CommonLib/MCTS.h"
 
 #include "EncModeCtrl.h"
-#include "EncLib.h"
 
 #include <math.h>
 #include <limits>
 
+using namespace std;
 
  //! \ingroup EncoderLib
  //! \{

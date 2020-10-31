@@ -173,6 +173,7 @@ protected:
   bool      m_printHexPsnr;
   bool      m_printFrameMSE;
   bool      m_printSequenceMSE;
+  bool      m_printMSSSIM;
   bool      m_cabacZeroWordPaddingEnabled;
 
   bool      m_gciPresentFlag;
@@ -636,6 +637,9 @@ protected:
   double    m_ccvSEIMinLuminanceValue;
   double    m_ccvSEIMaxLuminanceValue;
   double    m_ccvSEIAvgLuminanceValue;
+#if JVET_T0053_ANNOTATED_REGIONS_SEI
+  std::string           m_arSEIFileRoot;  // Annotated region SEI - initialized from external file
+#endif
   //====== Weighted Prediction ========
   bool      m_useWeightedPred;       //< Use of Weighting Prediction (P_SLICE)
   bool      m_useWeightedBiPred;    //< Use of Bi-directional Weighting Prediction (B_SLICE)
@@ -681,6 +685,11 @@ protected:
 #endif
   CostMode  m_costMode;                                       ///< The cost function to use, primarily when considering lossless coding.
   bool      m_TSRCdisableLL;                                  ///< Disable TSRC for lossless
+
+#if JVET_S0163_ON_TARGETOLS_SUBLAYERS
+  OPI       m_opi;
+  bool      m_OPIEnabled;                                     ///< enable Operating Point Information (OPI)
+#endif
 
   DCI       m_dci;
   bool      m_DCIEnabled;                                     ///< enable Decoding Capability Information (DCI)
@@ -732,6 +741,9 @@ protected:
 #endif
 
   bool        m_alf;                                          ///< Adaptive Loop Filter
+#if JVET_T0064
+  double      m_alfStrength;
+#endif
   bool        m_ccalf;
   int         m_ccalfQpThreshold;
 #if JVET_O0756_CALCULATE_HDRMETRICS
@@ -764,7 +776,9 @@ public:
 
   virtual ~EncCfg()
   {}
-
+#if JVET_T0053_ANNOTATED_REGIONS_SEI
+  std::map<uint32_t, SEIAnnotatedRegions::AnnotatedRegionObject> m_arObjects;
+#endif
   void setProfile(Profile::Name profile) { m_profile = profile; }
   void setLevel(Level::Tier tier, Level::Name level) { m_levelTier = tier; m_level = level; }
   bool      getFrameOnlyConstraintFlag() const { return m_frameOnlyConstraintFlag; }
@@ -913,6 +927,9 @@ public:
 
   bool      getPrintSequenceMSE             ()         const { return m_printSequenceMSE;           }
   void      setPrintSequenceMSE             (bool value)     { m_printSequenceMSE = value;          }
+
+  bool      getPrintMSSSIM                  ()         const { return m_printMSSSIM;               }
+  void      setPrintMSSSIM                  (bool value)     { m_printMSSSIM = value;              }
 
   bool      getCabacZeroWordPaddingEnabled()           const { return m_cabacZeroWordPaddingEnabled;  }
   void      setCabacZeroWordPaddingEnabled(bool value)       { m_cabacZeroWordPaddingEnabled = value; }
@@ -1543,6 +1560,10 @@ public:
   uint32_t  getOmniViewportSEIHorRange(int idx)                      { return m_omniViewportSEIHorRange[idx]; }
   void  setOmniViewportSEIVerRange(const std::vector<uint32_t>& vi)  { m_omniViewportSEIVerRange = vi; }
   uint32_t  getOmniViewportSEIVerRange(int idx)                      { return m_omniViewportSEIVerRange[idx]; }
+#if JVET_T0053_ANNOTATED_REGIONS_SEI
+  void  setAnnotatedRegionSEIFileRoot(const std::string &s)          { m_arSEIFileRoot = s; m_arObjects.clear();}
+  const std::string &getAnnotatedRegionSEIFileRoot() const           { return m_arSEIFileRoot; }
+#endif
   void     setRwpSEIEnabled(bool b)                                                                     { m_rwpSEIEnabled = b; }
   bool     getRwpSEIEnabled()                                                                           { return m_rwpSEIEnabled; }
   void     setRwpSEIRwpCancelFlag(bool b)                                                               { m_rwpSEIRwpCancelFlag = b; }
@@ -1776,6 +1797,11 @@ public:
   bool         getTSRCdisableLL       ()                             { return m_TSRCdisableLL;         }
   void         setTSRCdisableLL       ( bool b )                     { m_TSRCdisableLL = b;            }
 
+#if JVET_S0163_ON_TARGETOLS_SUBLAYERS
+  void         setOPI(OPI *p)                                        { m_opi = *p; }
+  OPI*         getOPI()                                              { return &m_opi; }
+#endif
+
   void         setDCI(DCI *p)                                        { m_dci = *p; }
   DCI*         getDCI()                                              { return &m_dci; }
   void         setUseRecalculateQPAccordingToLambda (bool b)         { m_recalculateQPAccordingToLambda = b;    }
@@ -1787,9 +1813,15 @@ public:
   void         setHarmonizeGopFirstFieldCoupleEnabled( bool b )      { m_bHarmonizeGopFirstFieldCoupleEnabled = b; }
   bool         getHarmonizeGopFirstFieldCoupleEnabled( ) const       { return m_bHarmonizeGopFirstFieldCoupleEnabled; }
 
+#if JVET_S0163_ON_TARGETOLS_SUBLAYERS
+  bool         getOPIEnabled()                                       { return m_OPIEnabled; }
+  void         setOPIEnabled(bool i)                                 { m_OPIEnabled = i; }
+  void         setHtidPlus1(int HTid)                                { m_opi.setHtidInfoPresentFlag(true); m_opi.setOpiHtidPlus1(HTid); }
+  void         setTargetOlsIdx(int TOlsIdx)                          { m_opi.setOlsInfoPresentFlag(true); m_opi.setOpiOlsIdx(TOlsIdx); }
+#endif
 
-  bool         getDCIEnabled()                      { return m_DCIEnabled; }
-  void         setDCIEnabled(bool i)                { m_DCIEnabled = i; }
+  bool         getDCIEnabled()                                       { return m_DCIEnabled; }
+  void         setDCIEnabled(bool i)                                 { m_DCIEnabled = i; }
   bool         getHrdParametersPresentFlag()                         { return m_hrdParametersPresentFlag; }
   void         setHrdParametersPresentFlag(bool i)                   { m_hrdParametersPresentFlag = i; }
   bool         getVuiParametersPresentFlag()                         { return m_vuiParametersPresentFlag; }
@@ -1826,61 +1858,46 @@ public:
   void         setOverscanAppropriateFlag(bool i)                    { m_overscanAppropriateFlag = i; }
   bool         getVideoFullRangeFlag()                               { return m_videoFullRangeFlag; }
   void         setVideoFullRangeFlag(bool i)                         { m_videoFullRangeFlag = i; }
-
   bool         getProgressiveSourceFlag() const                      { return m_progressiveSourceFlag; }
   void         setProgressiveSourceFlag(bool b)                      { m_progressiveSourceFlag = b; }
-
   bool         getInterlacedSourceFlag() const                       { return m_interlacedSourceFlag; }
   void         setInterlacedSourceFlag(bool b)                       { m_interlacedSourceFlag = b; }
-
   bool         getNonPackedConstraintFlag() const                    { return m_nonPackedConstraintFlag; }
   void         setNonPackedConstraintFlag(bool b)                    { m_nonPackedConstraintFlag = b; }
-
   bool         getNonProjectedConstraintFlag() const                 { return m_nonProjectedConstraintFlag; }
   void         setNonProjectedConstraintFlag(bool b)                 { m_nonProjectedConstraintFlag = b; }
-
   bool         getNoRprConstraintFlag() const                        { return m_noRprConstraintFlag; }
   void         setNoRprConstraintFlag(bool b)                        { m_noRprConstraintFlag = b; }
-
   bool         getNoResChangeInClvsConstraintFlag() const            { return m_noResChangeInClvsConstraintFlag; }
   void         setNoResChangeInClvsConstraintFlag(bool b)            { m_noResChangeInClvsConstraintFlag = b; }
-
   bool         getOneTilePerPicConstraintFlag() const                { return m_oneTilePerPicConstraintFlag; }
   void         setOneTilePerPicConstraintFlag(bool b)                { m_oneTilePerPicConstraintFlag = b; }
-
-  bool         getPicHeaderInSliceHeaderConstraintFlag() const { return m_picHeaderInSliceHeaderConstraintFlag; }
-  void         setPicHeaderInSliceHeaderConstraintFlag(bool b) { m_picHeaderInSliceHeaderConstraintFlag = b; }
-
+  bool         getPicHeaderInSliceHeaderConstraintFlag() const       { return m_picHeaderInSliceHeaderConstraintFlag; }
+  void         setPicHeaderInSliceHeaderConstraintFlag(bool b)       { m_picHeaderInSliceHeaderConstraintFlag = b; }
   bool         getOneSlicePerPicConstraintFlag() const               { return m_oneSlicePerPicConstraintFlag; }
   void         setOneSlicePerPicConstraintFlag(bool b)               { m_oneSlicePerPicConstraintFlag = b; }
-
   bool         getNoIdrRplConstraintFlag() const                     { return m_noIdrRplConstraintFlag; }
   void         setNoIdrRplConstraintFlag(bool b)                     { m_noIdrRplConstraintFlag = b; }
-
   bool         getNoRectSliceConstraintFlag() const                  { return m_noRectSliceConstraintFlag; }
   void         setNoRectSliceConstraintFlag(bool b)                  { m_noRectSliceConstraintFlag = b; }
-
   bool         getOneSlicePerSubpicConstraintFlag() const            { return m_oneSlicePerSubpicConstraintFlag; }
   void         setOneSlicePerSubpicConstraintFlag(bool b)            { m_oneSlicePerSubpicConstraintFlag = b; }
-
   bool         getNoSubpicInfoConstraintFlag() const                 { return m_noSubpicInfoConstraintFlag; }
   void         setNoSubpicInfoConstraintFlag(bool b)                 { m_noSubpicInfoConstraintFlag = b; }
-
   void         setSummaryOutFilename(const std::string &s)           { m_summaryOutFilename = s; }
   const std::string& getSummaryOutFilename() const                   { return m_summaryOutFilename; }
   void         setSummaryPicFilenameBase(const std::string &s)       { m_summaryPicFilenameBase = s; }
   const std::string& getSummaryPicFilenameBase() const               { return m_summaryPicFilenameBase; }
-
-  void         setSummaryVerboseness(uint32_t v)                         { m_summaryVerboseness = v; }
-  uint32_t         getSummaryVerboseness( ) const                        { return m_summaryVerboseness; }
+  void         setSummaryVerboseness(uint32_t v)                     { m_summaryVerboseness = v; }
+  uint32_t     getSummaryVerboseness() const                         { return m_summaryVerboseness; }
   void         setIMV(int n)                                         { m_ImvMode = n; }
   int          getIMV() const                                        { return m_ImvMode; }
   void         setIMV4PelFast(int n)                                 { m_Imv4PelFast = n; }
   int          getIMV4PelFast() const                                { return m_Imv4PelFast; }
   void         setDecodeBitstream( int i, const std::string& s )     { m_decodeBitstreams[i] = s; }
   const std::string& getDecodeBitstream( int i )               const { return m_decodeBitstreams[i]; }
-  bool         getForceDecodeBitstream1()                      const { return m_forceDecodeBitstream1; }
   void         setForceDecodeBitstream1( bool b )                    { m_forceDecodeBitstream1 = b; }
+  bool         getForceDecodeBitstream1()                      const { return m_forceDecodeBitstream1; }
   void         setSwitchPOC( int i )                                 { m_switchPOC = i; }
   int          getSwitchPOC()                                  const { return m_switchPOC; }
   void         setSwitchDQP( int i )                                 { m_switchDQP = i; }
@@ -1903,6 +1920,10 @@ public:
 #endif
   void         setUseALF( bool b ) { m_alf = b; }
   bool         getUseALF()                                      const { return m_alf; }
+#if JVET_T0064
+  void         setALFStrength( double s) { m_alfStrength = s; }
+  double       getALFStrength()                                 const { return m_alfStrength; }
+#endif
   void         setUseCCALF( bool b )                                  { m_ccalf = b; }
   bool         getUseCCALF()                                    const { return m_ccalf; }
   void         setCCALFQpThreshold( int b )                           { m_ccalfQpThreshold = b; }

@@ -894,7 +894,7 @@ void HLSWriter::codeSPS( const SPS* pcSPS )
   WRITE_FLAG( pcSPS->getEntropyCodingSyncEnabledFlag() ? 1 : 0, "sps_entropy_coding_sync_enabled_flag" );
   WRITE_FLAG( pcSPS->getEntryPointsPresentFlag() ? 1 : 0, "sps_entry_point_offsets_present_flag" );
   WRITE_CODE(pcSPS->getBitsForPOC()-4, 4, "sps_log2_max_pic_order_cnt_lsb_minus4");
-  
+
   WRITE_FLAG(pcSPS->getPocMsbCycleFlag() ? 1 : 0, "sps_poc_msb_cycle_flag");
   if (pcSPS->getPocMsbCycleFlag())
   {
@@ -1323,6 +1323,28 @@ void HLSWriter::codeDCI(const DCI* dci)
   WRITE_FLAG(0, "dci_extension_flag");
   xWriteRbspTrailingBits();
 }
+#if JVET_S0163_ON_TARGETOLS_SUBLAYERS
+void HLSWriter::codeOPI(const OPI *opi)
+{
+#if ENABLE_TRACING
+  xTraceOPIHeader();
+#endif
+  WRITE_FLAG(opi->getOlsInfoPresentFlag(), "opi_ols_info_present_flag");
+  WRITE_FLAG(opi->getHtidInfoPresentFlag(), "opi_htid_info_present_flag");
+
+  if (opi->getOlsInfoPresentFlag())
+  {
+    WRITE_UVLC(opi->getOpiOlsIdx(), "opi_ols_idx");
+  }
+
+  if (opi->getHtidInfoPresentFlag())
+  {
+    WRITE_CODE(opi->getOpiHtidPlus1(), 3, "opi_htid_plus1");
+  }
+  WRITE_FLAG(0, "opi_extension_flag");
+  xWriteRbspTrailingBits();
+}
+#endif
 void HLSWriter::codeVPS(const VPS* pcVPS)
 {
 #if ENABLE_TRACING
@@ -1351,7 +1373,7 @@ void HLSWriter::codeVPS(const VPS* pcVPS)
         bool presentFlag = false;
         for (int j = 0; j < i; j++)
         {
-          presentFlag |= ((pcVPS->getMaxTidIlRefPicsPlus1(i, j) != 7) && pcVPS->getDirectRefLayerFlag(i, j));
+          presentFlag |= ((pcVPS->getMaxTidIlRefPicsPlus1(i, j) != MAX_TLAYER) && pcVPS->getDirectRefLayerFlag(i, j));
         }
         WRITE_FLAG(presentFlag, "max_tid_ref_present_flag[ i ]");
         for (int j = 0; j < i; j++)
@@ -1409,11 +1431,11 @@ void HLSWriter::codeVPS(const VPS* pcVPS)
   {
     if(i > 0)
       WRITE_FLAG(pcVPS->getPtPresentFlag(i), "vps_pt_present_flag");
-    if (!pcVPS->getDefaultPtlDpbHrdMaxTidFlag()) 
+    if (!pcVPS->getDefaultPtlDpbHrdMaxTidFlag())
     {
       WRITE_CODE(pcVPS->getPtlMaxTemporalId(i), 3, "vps_ptl_max_tid");
     }
-    else 
+    else
     {
       CHECK(pcVPS->getPtlMaxTemporalId(i) != pcVPS->getMaxSubLayers() - 1, "When vps_default_ptl_dpb_hrd_max_tid_flag is equal to 1, the value of vps_ptl_max_tid[ i ] is inferred to be equal to vps_max_sublayers_minus1");
     }
@@ -1502,7 +1524,7 @@ void HLSWriter::codeVPS(const VPS* pcVPS)
       {
         WRITE_CODE(pcVPS->getHrdMaxTid(i), 3, "vps_hrd_max_tid[i]");
       }
-      else 
+      else
       {
         CHECK(pcVPS->getHrdMaxTid(i) != pcVPS->getMaxSubLayers() - 1, "When vps_default_ptl_dpb_hrd_max_tid_flag is equal to 1, the value of vps_hrd_max_tid[ i ] is inferred to be equal to vps_max_sublayers_minus1");
       }

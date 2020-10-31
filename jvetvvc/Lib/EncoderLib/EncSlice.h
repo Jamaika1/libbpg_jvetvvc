@@ -49,7 +49,7 @@
 //! \ingroup EncoderLib
 //! \{
 
-class EncLib;
+class LayerEncoder;
 class EncGOP;
 
 // ====================================================================================================================
@@ -64,7 +64,7 @@ private:
   // encoder configuration
   EncCfg*                 m_pcCfg;                              ///< encoder configuration class
 
-  EncLib*                 m_pcLib;
+  LayerEncoder*           m_layerEncoder;
 
   // pictures
   PicList*                m_pcListPic;                          ///< list of pictures
@@ -114,7 +114,7 @@ public:
 
   void    create              ( int iWidth, int iHeight, ChromaFormat chromaFormat, uint32_t iMaxCUWidth, uint32_t iMaxCUHeight, uint8_t uhTotalDepth );
   void    destroy             ();
-  void    init                ( EncLib* pcEncLib, const SPS& sps );
+  void    init                ( LayerEncoder* layerEncoder, const SPS& sps );
 
   /// preparation of slice encoding (reference marking, QP and lambda)
   void    initEncSlice        ( Picture*  pcPic, const int pocLast, const int pocCurr,
@@ -129,7 +129,7 @@ public:
   void    calCostPictureI     ( Picture* picture );
   void    setLosslessSlice(Picture* pcPic, bool b);      ///< Set if the slice is lossless or not
   void    encodeSlice         ( Picture* pcPic, OutputBitstream* pcSubstreams, uint32_t &numBinsCoded );
-  void    encodeCtus          ( Picture* pcPic, const bool bCompressEntireSlice, const bool bFastDeltaQP, EncLib* pcEncLib );
+  void    encodeCtus          ( Picture* pcPic, const bool bCompressEntireSlice, const bool bFastDeltaQP, LayerEncoder* layerEncoder );
   void    checkDisFracMmvd    ( Picture* pcPic, uint32_t startCtuTsAddr, uint32_t boundingCtuTsAddr );
   void    setJointCbCrModes( CodingStructure& cs, const Position topLeftLuma, const Size sizeLuma );
 

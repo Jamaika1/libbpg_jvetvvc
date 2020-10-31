@@ -38,7 +38,7 @@
 #include "CommonLib/Contexts.h"
 #include "CABACWriter.h"
 
-#include "EncLib.h"
+#include "LayerEncoder.h"
 
 #include "CommonLib/UnitTools.h"
 #include "CommonLib/dtrace_buffer.h"
