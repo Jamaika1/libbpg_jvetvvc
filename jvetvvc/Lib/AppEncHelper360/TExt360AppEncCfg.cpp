@@ -161,13 +161,13 @@ static inline std::istringstream &operator >> (std::istringstream &in, Generaliz
 
 Void TExt360AppEncCfg::xSetDefaultFramePackingParam(SVideoInfo& sVideoInfo)
 {
-  if(  sVideoInfo.geoType == SVIDEO_EQUIRECT 
+  if(  sVideoInfo.geoType == SVIDEO_EQUIRECT
 #if SVIDEO_ADJUSTED_EQUALAREA
-    || sVideoInfo.geoType == SVIDEO_ADJUSTEDEQUALAREA 
+    || sVideoInfo.geoType == SVIDEO_ADJUSTEDEQUALAREA
 #else
-    || sVideoInfo.geoType == SVIDEO_EQUALAREA 
+    || sVideoInfo.geoType == SVIDEO_EQUALAREA
 #endif
-    || sVideoInfo.geoType == SVIDEO_VIEWPORT 
+    || sVideoInfo.geoType == SVIDEO_VIEWPORT
 #if SVIDEO_CPPPSNR
     || sVideoInfo.geoType == SVIDEO_CRASTERSPARABOLIC
 #endif
@@ -185,7 +185,7 @@ Void TExt360AppEncCfg::xSetDefaultFramePackingParam(SVideoInfo& sVideoInfo)
       frmPack.faces[0][0].id = 0; frmPack.faces[0][0].rot = 0;
     }
   }
-  else if( (sVideoInfo.geoType == SVIDEO_CUBEMAP) 
+  else if( (sVideoInfo.geoType == SVIDEO_CUBEMAP)
 #if SVIDEO_ADJUSTED_CUBEMAP
         || (sVideoInfo.geoType == SVIDEO_ADJUSTEDCUBEMAP)
 #endif
@@ -271,7 +271,7 @@ Void TExt360AppEncCfg::xSetDefaultFramePackingParam(SVideoInfo& sVideoInfo)
         frmPack.faces[1][2].id = 6; frmPack.faces[1][2].rot = 180;
         frmPack.faces[1][3].id = 3; frmPack.faces[1][3].rot = 180;
       }
-      else 
+      else
       {
         CHECK(!(sVideoInfo.iCompactFPStructure == 0 || sVideoInfo.iCompactFPStructure == 2), "");
         SVideoFPStruct &frmPack = sVideoInfo.framePackStruct;
@@ -409,7 +409,7 @@ Void TExt360AppEncCfg::xSetDefaultFramePackingParam(SVideoInfo& sVideoInfo)
           SVideoFPStruct &frmPack = sVideoInfo.framePackStruct;
           frmPack.chromaFormatIDC = CHROMA_420;
           frmPack.rows = 2;
-          frmPack.cols = 3;          
+          frmPack.cols = 3;
           frmPack.faces[0][0].id = 4; frmPack.faces[0][0].rot = 0;
           frmPack.faces[0][1].id = 0; frmPack.faces[0][1].rot = 0;
           frmPack.faces[0][2].id = 5; frmPack.faces[0][2].rot = 0;
@@ -500,7 +500,7 @@ Void TExt360AppEncCfg::addOptions(df::program_options_lite::Options &opts, TExt3
 #endif
 #if SVIDEO_VIEWPORT_PSNR
 #if SVIDEO_DYNAMIC_VIEWPORT_PSNR
-  ("ViewPortPSNREnable,-vppsnr",                 m_viewPortPSNRParam.bViewPortPSNREnabled,       false,              "Flag to enable viewport PSNR calculation")  
+  ("ViewPortPSNREnable,-vppsnr",                 m_viewPortPSNRParam.bViewPortPSNREnabled,       false,              "Flag to enable viewport PSNR calculation")
 #else
   ("ViewPortPSNREnable,-vppsnr",                 m_viewPortPSNRParam.bViewPortPSNREnabled,       true,               "Flag to enable viewport PSNR calculation")
 #endif
@@ -509,9 +509,9 @@ Void TExt360AppEncCfg::addOptions(df::program_options_lite::Options &opts, TExt3
   ("ViewPortHeight",                             m_viewPortPSNRParam.iViewPortHeight,                   1816,               "Viewport height for static viewport PSNR calculation")
 #endif
 #if SVIDEO_DYNAMIC_VIEWPORT_PSNR
-  ("DynamicViewPortPSNREnable,-dynvppsnr",       m_dynamicViewPortPSNRParam.bViewPortPSNREnabled,       true,               "Flag to enable dynamic viewport PSNR calculation")  
-  ("DynamicViewPortList",                        m_dynamicViewPortPSNRParam.viewPortSettingsList,       ctx.defDynViewPortLists, "Start and end viewports setting for dynamic viewport PSNR calculation") 
-  ("DynamicViewPortWidth",                       m_dynamicViewPortPSNRParam.iViewPortWidth,             1816,               "Viewport width for dynamic viewport PSNR calculation") 
+  ("DynamicViewPortPSNREnable,-dynvppsnr",       m_dynamicViewPortPSNRParam.bViewPortPSNREnabled,       true,               "Flag to enable dynamic viewport PSNR calculation")
+  ("DynamicViewPortList",                        m_dynamicViewPortPSNRParam.viewPortSettingsList,       ctx.defDynViewPortLists, "Start and end viewports setting for dynamic viewport PSNR calculation")
+  ("DynamicViewPortWidth",                       m_dynamicViewPortPSNRParam.iViewPortWidth,             1816,               "Viewport width for dynamic viewport PSNR calculation")
   ("DynamicViewPortHeight",                      m_dynamicViewPortPSNRParam.iViewPortHeight,            1816,               "Viewport height for dynamic viewport PSNR calculation")
 #endif
 #if SVIDEO_SPSNR_NN
@@ -559,7 +559,7 @@ Void TExt360AppEncCfg::addOptions(df::program_options_lite::Options &opts, TExt3
 #if SVIDEO_HEMI_PROJECTIONS
   ("CodingPCMP",                            m_codingSVideoInfo.bPCMP,                      false,  "Enable padded hemisphere-based projection format coding")
 #endif
-#if SVIDEO_FISHEYE 
+#if SVIDEO_FISHEYE
   ("FisheyeCircularRegionCentreX", m_codingSVideoInfo.sFisheyeInfo.fCircularRegionCentre_x, m_codingSVideoInfo.sFisheyeInfo.fCircularRegionCentre_x,  "the horizontal coordinates of the centre of the circular region")
   ("FisheyeCircularRegionCentreY", m_codingSVideoInfo.sFisheyeInfo.fCircularRegionCentre_y, m_codingSVideoInfo.sFisheyeInfo.fCircularRegionCentre_y,  "the vertical coordinates of the centre of the circular region")
   ("FisheyeCircularRegionRadius", m_codingSVideoInfo.sFisheyeInfo.fCircularRegionRadius, m_codingSVideoInfo.sFisheyeInfo.fCircularRegionRadius,    "the radius of a circular region")
@@ -670,11 +670,11 @@ Void TExt360AppEncCfg::processOptions(TExt360AppEncCfg::TExt360AppEncCfgContext 
 
 Void TExt360AppEncCfg::xFillSourceSVideoInfo(SVideoInfo& sVidInfo, Int inputWidth, Int inputHeight)
 {
-  if(  sVidInfo.geoType == SVIDEO_EQUIRECT 
+  if(  sVidInfo.geoType == SVIDEO_EQUIRECT
 #if SVIDEO_ADJUSTED_EQUALAREA
-    || sVidInfo.geoType == SVIDEO_ADJUSTEDEQUALAREA 
+    || sVidInfo.geoType == SVIDEO_ADJUSTEDEQUALAREA
 #else
-    || sVidInfo.geoType == SVIDEO_EQUALAREA 
+    || sVidInfo.geoType == SVIDEO_EQUALAREA
 #endif
     || sVidInfo.geoType == SVIDEO_VIEWPORT
     )
@@ -684,7 +684,7 @@ Void TExt360AppEncCfg::xFillSourceSVideoInfo(SVideoInfo& sVidInfo, Int inputWidt
     //enforce;
     sVidInfo.framePackStruct.rows = 1;
     sVidInfo.framePackStruct.cols = 1;
-    sVidInfo.framePackStruct.faces[0][0].id = 0; 
+    sVidInfo.framePackStruct.faces[0][0].id = 0;
     //sVidInfo.framePackStruct.faces[0][0].rot = 0;
     sVidInfo.iNumFaces =1;
     if(sVidInfo.framePackStruct.faces[0][0].rot == 90 || sVidInfo.framePackStruct.faces[0][0].rot == 270)
@@ -865,7 +865,7 @@ Void TExt360AppEncCfg::xFillSourceSVideoInfo(SVideoInfo& sVidInfo, Int inputWidt
 Void TExt360AppEncCfg::xCalcOutputResolution(SVideoInfo& sourceSVideoInfo, SVideoInfo& codingSVideoInfo, Int& iOutputWidth, Int& iOutputHeight, Int minCuSize)
 {
   //calulate the coding resolution;
-  if(  sourceSVideoInfo.geoType == SVIDEO_EQUIRECT 
+  if(  sourceSVideoInfo.geoType == SVIDEO_EQUIRECT
 #if SVIDEO_ADJUSTED_EQUALAREA
     || sourceSVideoInfo.geoType == SVIDEO_ADJUSTEDEQUALAREA
 #else
@@ -873,8 +873,8 @@ Void TExt360AppEncCfg::xCalcOutputResolution(SVideoInfo& sourceSVideoInfo, SVide
 #endif
     )
   {
-    if(  codingSVideoInfo.geoType == SVIDEO_CUBEMAP 
-      || codingSVideoInfo.geoType ==SVIDEO_OCTAHEDRON 
+    if(  codingSVideoInfo.geoType == SVIDEO_CUBEMAP
+      || codingSVideoInfo.geoType ==SVIDEO_OCTAHEDRON
       || codingSVideoInfo.geoType == SVIDEO_ICOSAHEDRON
       || codingSVideoInfo.geoType ==SVIDEO_VIEWPORT
 #if SVIDEO_TSP_IMP
@@ -907,7 +907,7 @@ Void TExt360AppEncCfg::xCalcOutputResolution(SVideoInfo& sourceSVideoInfo, SVide
 #endif
       )
     {
-      if( (codingSVideoInfo.geoType == SVIDEO_CUBEMAP) 
+      if( (codingSVideoInfo.geoType == SVIDEO_CUBEMAP)
 #if SVIDEO_TSP_IMP
         ||(codingSVideoInfo.geoType == SVIDEO_TSP)
 #endif
@@ -955,7 +955,7 @@ Void TExt360AppEncCfg::xCalcOutputResolution(SVideoInfo& sourceSVideoInfo, SVide
       if(m_iCodingFaceWidth==0 || m_iCodingFaceHeight==0)
       {
         Int tmp;
-        if( (codingSVideoInfo.geoType == SVIDEO_CUBEMAP) 
+        if( (codingSVideoInfo.geoType == SVIDEO_CUBEMAP)
 #if SVIDEO_TSP_IMP
           ||(codingSVideoInfo.geoType == SVIDEO_TSP)
 #endif
@@ -1194,7 +1194,7 @@ Void TExt360AppEncCfg::xCalcOutputResolution(SVideoInfo& sourceSVideoInfo, SVide
 #endif
       }
     }
-    else if(   codingSVideoInfo.geoType ==SVIDEO_EQUIRECT 
+    else if(   codingSVideoInfo.geoType ==SVIDEO_EQUIRECT
 #if SVIDEO_ADJUSTED_EQUALAREA
             || codingSVideoInfo.geoType == SVIDEO_ADJUSTEDEQUALAREA
 #else
@@ -1234,7 +1234,7 @@ Void TExt360AppEncCfg::xCalcOutputResolution(SVideoInfo& sourceSVideoInfo, SVide
       else
       {
         iOutputWidth = codingSVideoInfo.iFaceWidth;
-        iOutputHeight = codingSVideoInfo.iFaceHeight; 
+        iOutputHeight = codingSVideoInfo.iFaceHeight;
 #if SVIDEO_ERP_PADDING
 #if 1 //bugfix;
         if (codingSVideoInfo.bPERP)
@@ -1278,8 +1278,8 @@ Void TExt360AppEncCfg::xCalcOutputResolution(SVideoInfo& sourceSVideoInfo, SVide
       CHECK(true, "Not supported yet");
     }
   }
-  else if(    (sourceSVideoInfo.geoType == SVIDEO_CUBEMAP) 
-           || (sourceSVideoInfo.geoType == SVIDEO_OCTAHEDRON) 
+  else if(    (sourceSVideoInfo.geoType == SVIDEO_CUBEMAP)
+           || (sourceSVideoInfo.geoType == SVIDEO_OCTAHEDRON)
            || (sourceSVideoInfo.geoType == SVIDEO_ICOSAHEDRON)
 #if SVIDEO_TSP_IMP
            || (sourceSVideoInfo.geoType == SVIDEO_TSP)
@@ -1307,12 +1307,12 @@ Void TExt360AppEncCfg::xCalcOutputResolution(SVideoInfo& sourceSVideoInfo, SVide
            || (sourceSVideoInfo.geoType == SVIDEO_GENERALIZEDCUBEMAP)
 #endif
            )
-  { 
-    if(  codingSVideoInfo.geoType == SVIDEO_EQUIRECT 
+  {
+    if(  codingSVideoInfo.geoType == SVIDEO_EQUIRECT
 #if SVIDEO_ADJUSTED_EQUALAREA
-      || codingSVideoInfo.geoType == SVIDEO_ADJUSTEDEQUALAREA 
+      || codingSVideoInfo.geoType == SVIDEO_ADJUSTEDEQUALAREA
 #else
-      || codingSVideoInfo.geoType == SVIDEO_EQUALAREA 
+      || codingSVideoInfo.geoType == SVIDEO_EQUALAREA
 #endif
       || codingSVideoInfo.geoType == SVIDEO_VIEWPORT)
     {
@@ -1594,7 +1594,7 @@ Void TExt360AppEncCfg::xCalcOutputResolution(SVideoInfo& sourceSVideoInfo, SVide
           iOutputWidth  = halfCol*(codingSVideoInfo.iFaceWidth + 4) + (codingSVideoInfo.iFaceWidth>>1) + 2;
           iOutputHeight = codingSVideoInfo.framePackStruct.rows*codingSVideoInfo.iFaceHeight;
         }
-      } 
+      }
     }
 #if SVIDEO_TSP_IMP
     else if(codingSVideoInfo.geoType == SVIDEO_TSP )
@@ -1602,8 +1602,8 @@ Void TExt360AppEncCfg::xCalcOutputResolution(SVideoInfo& sourceSVideoInfo, SVide
       codingSVideoInfo.iNumFaces = 6;
       if(m_iCodingFaceWidth==0 || m_iCodingFaceHeight==0)
       {
-        if(  (sourceSVideoInfo.geoType == SVIDEO_CUBEMAP) 
-          || (sourceSVideoInfo.geoType == SVIDEO_TSP) 
+        if(  (sourceSVideoInfo.geoType == SVIDEO_CUBEMAP)
+          || (sourceSVideoInfo.geoType == SVIDEO_TSP)
 #if SVIDEO_ADJUSTED_CUBEMAP
           || (sourceSVideoInfo.geoType == SVIDEO_ADJUSTEDCUBEMAP)
 #endif
@@ -1652,7 +1652,7 @@ Void TExt360AppEncCfg::xCalcOutputResolution(SVideoInfo& sourceSVideoInfo, SVide
     {
       CHECK(true, "Not supported yet");
     }
-  }   
+  }
 #if SVIDEO_SEGMENTED_SPHERE
   else if(sourceSVideoInfo.geoType == SVIDEO_SEGMENTEDSPHERE)
   {
@@ -1881,7 +1881,7 @@ Void TExt360AppEncCfg::xCalcOutputResolution(SVideoInfo& sourceSVideoInfo, SVide
               }
           }
       }
-      else if (   codingSVideoInfo.geoType == SVIDEO_EQUIRECT 
+      else if (   codingSVideoInfo.geoType == SVIDEO_EQUIRECT
 #if SVIDEO_ADJUSTED_EQUALAREA
                || codingSVideoInfo.geoType == SVIDEO_ADJUSTEDEQUALAREA
 #else
@@ -1932,7 +1932,7 @@ Void TExt360AppEncCfg::xCalcOutputResolution(SVideoInfo& sourceSVideoInfo, SVide
         codingSVideoInfo.iFaceHeight = (m_iCodingFaceHeight + (minCuSize - 1)) / minCuSize*minCuSize;
       }
 
-      // width of the ERP is restricted to twice of the width of the Fisheye 
+      // width of the ERP is restricted to twice of the width of the Fisheye
       if(codingSVideoInfo.geoType == SVIDEO_EQUIRECT)
         codingSVideoInfo.iFaceWidth *= 2;
 
@@ -2063,7 +2063,7 @@ Bool TExt360AppEncCfg::verifyParameters()
   {
     xConfirmPara(m_faceSizeAlignment<0, "FaceSizeAlignment must be no less than 0");
     //check source;
-    if(   m_sourceSVideoInfo.geoType == SVIDEO_EQUIRECT 
+    if(   m_sourceSVideoInfo.geoType == SVIDEO_EQUIRECT
 #if SVIDEO_ADJUSTED_EQUALAREA
        || m_sourceSVideoInfo.geoType == SVIDEO_ADJUSTEDEQUALAREA
 #else
@@ -2142,7 +2142,7 @@ Bool TExt360AppEncCfg::verifyParameters()
     }
 #endif
     //check coding;
-    if(   m_codingSVideoInfo.geoType == SVIDEO_EQUIRECT 
+    if(   m_codingSVideoInfo.geoType == SVIDEO_EQUIRECT
 #if SVIDEO_ADJUSTED_EQUALAREA
        || m_codingSVideoInfo.geoType == SVIDEO_ADJUSTEDEQUALAREA
 #else
@@ -2373,9 +2373,13 @@ Bool TExt360AppEncCfg::verifyParameters()
 
 Void TExt360AppEncCfg::outputConfigurationSummary()
 {
+#if !defined(VTM_VERSION)
   printf("\n\n-----360Lib software version [%s]-----\n", VERSION_360Lib);
   printf("-----360 video parameters----\n");
   printf("SphereVideo:%d\n", m_bSVideo);
+#else
+  printf("SphereVideo:%d ", m_bSVideo);
+#endif
   if(m_bSVideo)
   {
     printf("InputGeometryType: ");
@@ -2388,6 +2392,9 @@ Void TExt360AppEncCfg::outputConfigurationSummary()
       sourceCols, sourceRows);
     for(Int i=0; i<sourceRows; i++)
     {
+#if defined(VTM_VERSION)
+      printf("\n");
+#endif
       for(Int j=0; j<sourceCols; j++)
         printf("Id_%d(R_%d) ", m_sourceSVideoInfo.framePackStruct.faces[i][j].id,m_sourceSVideoInfo.framePackStruct.faces[i][j].rot);
       printf(" | ");
@@ -2397,15 +2404,26 @@ Void TExt360AppEncCfg::outputConfigurationSummary()
       m_sourceSVideoInfo.framePackStruct.cols, m_sourceSVideoInfo.framePackStruct.rows);
     for(Int i=0; i<m_sourceSVideoInfo.framePackStruct.rows; i++)
     {
+#if defined(VTM_VERSION)
+      printf("\n");
+#endif
       for(Int j=0; j<m_sourceSVideoInfo.framePackStruct.cols; j++)
         printf("Id_%d(R_%d) ", m_sourceSVideoInfo.framePackStruct.faces[i][j].id,m_sourceSVideoInfo.framePackStruct.faces[i][j].rot);
       printf(" | ");
     }
 #endif
+#if defined(VTM_VERSION)
+    printf("Compact type: %d ", m_sourceSVideoInfo.iCompactFPStructure);
+#if SVIDEO_ERP_PADDING
+    if(m_sourceSVideoInfo.geoType == SVIDEO_EQUIRECT)
+      printf("InputPERP: %d ", m_sourceSVideoInfo.bPERP);
+#endif
+#else
     printf("\nCompact type: %d\n", m_sourceSVideoInfo.iCompactFPStructure);
 #if SVIDEO_ERP_PADDING
     if(m_sourceSVideoInfo.geoType == SVIDEO_EQUIRECT)
       printf("InputPERP: %d\n", m_sourceSVideoInfo.bPERP);
+#endif
 #endif
 #if SVIDEO_GENERALIZED_CUBEMAP
   if(m_sourceSVideoInfo.geoType == SVIDEO_GENERALIZEDCUBEMAP)
@@ -2421,7 +2439,7 @@ Void TExt360AppEncCfg::outputConfigurationSummary()
         {
           Int facePos = i * m_sourceSVideoInfo.framePackStruct.cols + j;
           printf("Id_%d(u(%.2f, %d),v(%.2f, %d)) ", m_sourceSVideoInfo.framePackStruct.faces[i][j].id,
-                                                m_sourceSVideoInfo.GCMPSettings.fCoeffU[facePos], m_sourceSVideoInfo.GCMPSettings.bUAffectedByV[facePos], 
+                                                m_sourceSVideoInfo.GCMPSettings.fCoeffU[facePos], m_sourceSVideoInfo.GCMPSettings.bUAffectedByV[facePos],
                                                 m_sourceSVideoInfo.GCMPSettings.fCoeffV[facePos], m_sourceSVideoInfo.GCMPSettings.bVAffectedByU[facePos] );
         }
         printf(" | ");
@@ -2441,7 +2459,11 @@ Void TExt360AppEncCfg::outputConfigurationSummary()
     printf("\n");
   }
 #endif
+#if defined(VTM_VERSION)
+    printf("CodingGeometryType: ");
+#else
     printf("\nCodingGeometryType: ");
+#endif
     xPrintGeoTypeName(m_codingSVideoInfo.geoType, m_codingSVideoInfo.iCompactFPStructure);
 #if SVIDEO_GENERALIZED_CUBEMAP
     Int codingNumFaces = m_codingSVideoInfo.geoType==SVIDEO_GENERALIZEDCUBEMAP && (m_codingSVideoInfo.iGCMPPackingType==4 || m_codingSVideoInfo.iGCMPPackingType==5) ? m_codingSVideoInfo.iNumFaces-1 : m_codingSVideoInfo.iNumFaces;
@@ -2451,6 +2473,9 @@ Void TExt360AppEncCfg::outputConfigurationSummary()
       codingCols, codingRows);
     for(Int i=0; i<codingRows; i++)
     {
+#if defined(VTM_VERSION)
+      printf("\n");
+#endif
       for(Int j=0; j<codingCols; j++)
         printf("Id_%d(R_%d) ", m_codingSVideoInfo.framePackStruct.faces[i][j].id, m_codingSVideoInfo.framePackStruct.faces[i][j].rot);
       printf(" | ");
@@ -2460,12 +2485,19 @@ Void TExt360AppEncCfg::outputConfigurationSummary()
       m_codingSVideoInfo.framePackStruct.cols, m_codingSVideoInfo.framePackStruct.rows);
     for(Int i=0; i<m_codingSVideoInfo.framePackStruct.rows; i++)
     {
+#if defined(VTM_VERSION)
+      printf("\n");
+#endif
       for(Int j=0; j<m_codingSVideoInfo.framePackStruct.cols; j++)
         printf("Id_%d(R_%d) ", m_codingSVideoInfo.framePackStruct.faces[i][j].id, m_codingSVideoInfo.framePackStruct.faces[i][j].rot);
       printf(" | ");
     }
 #endif
+#if defined(VTM_VERSION)
+    printf("Compact type: %d ", m_codingSVideoInfo.iCompactFPStructure);
+#else
     printf("\nCompact type: %d\n", m_codingSVideoInfo.iCompactFPStructure);
+#endif
 #if SVIDEO_ERP_PADDING
     if(m_codingSVideoInfo.geoType == SVIDEO_EQUIRECT)
       printf("CodingPERP: %d\n", m_codingSVideoInfo.bPERP);
@@ -2488,7 +2520,7 @@ Void TExt360AppEncCfg::outputConfigurationSummary()
         {
           Int facePos = i * m_codingSVideoInfo.framePackStruct.cols + j;
           printf("Id_%d(u(%.2f, %d),v(%.2f, %d)) ", m_codingSVideoInfo.framePackStruct.faces[i][j].id,
-                                                    m_codingSVideoInfo.GCMPSettings.fCoeffU[facePos], m_codingSVideoInfo.GCMPSettings.bUAffectedByV[facePos], 
+                                                    m_codingSVideoInfo.GCMPSettings.fCoeffU[facePos], m_codingSVideoInfo.GCMPSettings.bUAffectedByV[facePos],
                                                     m_codingSVideoInfo.GCMPSettings.fCoeffV[facePos], m_codingSVideoInfo.GCMPSettings.bVAffectedByU[facePos] );
         }
         printf(" | ");
@@ -2508,6 +2540,7 @@ Void TExt360AppEncCfg::outputConfigurationSummary()
   }
 #endif
     printf("\n");
+#if !defined(VTM_VERSION)
     if(m_codingSVideoInfo.geoType == SVIDEO_VIEWPORT)
       printf("Global viewport setting: %.2f %.2f %.2f %.2f\n", m_codingSVideoInfo.viewPort.hFOV, m_codingSVideoInfo.viewPort.vFOV, m_codingSVideoInfo.viewPort.fYaw, m_codingSVideoInfo.viewPort.fPitch);
     printf("Packed frame resolution: %dx%d (Input face resolution:%dx%d)\n", m_cfg.m_iSourceWidth, m_cfg.m_iSourceHeight, m_iCodingFaceWidth, m_iCodingFaceHeight);
@@ -2518,7 +2551,7 @@ Void TExt360AppEncCfg::outputConfigurationSummary()
 #else
     printf("ChromaSampleLocType: %d\n", m_inputGeoParam.iChromaSampleLocType);
 #endif
-    printf("Input ChromaFormatIDC: %d; ", m_cfg.m_InputChromaFormatIDC);    
+    printf("Input ChromaFormatIDC: %d; ", m_cfg.m_InputChromaFormatIDC);
 #if !SVIDEO_CHROMA_TYPES_SUPPORT
     if(m_inputGeoParam.chromaFormat == CHROMA_420)
       printf("Internal ChromaFormatIDC: %d, ChromaResample: %d; ", m_inputGeoParam.chromaFormat, m_inputGeoParam.bResampleChroma);
@@ -2532,6 +2565,7 @@ Void TExt360AppEncCfg::outputConfigurationSummary()
       printf("Geometry conversion is skipped!\n");
 
     printf("\n");
+#endif
 #if SVIDEO_SPSNR_NN
     if(m_bSPSNRNNEnabled)
     {
@@ -2561,7 +2595,7 @@ Void TExt360AppEncCfg::outputConfigurationSummary()
       printf("S-PSNR-I is enabled; SphFile file: %s\n", m_sphFilename.empty() ? "NULL" : m_sphFilename.c_str());
 #endif
     }
-#endif    
+#endif
 #if SVIDEO_CPPPSNR
     if(m_bCPPPSNREnabled)
     {
@@ -2586,7 +2620,7 @@ Void TExt360AppEncCfg::outputConfigurationSummary()
 #endif
       printf("Number of viewports: %d, Resolutoin:%dx%d\n", (Int)(m_viewPortPSNRParam.viewPortSettingsList.size()), m_viewPortPSNRParam.iViewPortWidth, m_viewPortPSNRParam.iViewPortHeight);
       for(std::vector<ViewPortSettings>::iterator it = m_viewPortPSNRParam.viewPortSettingsList.begin(); it != m_viewPortPSNRParam.viewPortSettingsList.end(); it++)
-        printf("Global viewport setting: %.2f %.2f %.2f %.2f\n", it->hFOV, it->vFOV, it->fYaw, it->fPitch);      
+        printf("Global viewport setting: %.2f %.2f %.2f %.2f\n", it->hFOV, it->vFOV, it->fYaw, it->fPitch);
     }
     else
 #if SVIDEO_DYNAMIC_VIEWPORT_PSNR
@@ -2600,11 +2634,11 @@ Void TExt360AppEncCfg::outputConfigurationSummary()
     {
       printf("ViewPort parameters for dynamic ViewPort PSNR calculation:\n");
       printf("Number of viewports: %d, Resolutoin:%dx%d\n", (Int)(m_dynamicViewPortPSNRParam.viewPortSettingsList.size()), m_dynamicViewPortPSNRParam.iViewPortWidth, m_dynamicViewPortPSNRParam.iViewPortHeight);
-      for(Int i =0; i<m_dynamicViewPortPSNRParam.viewPortSettingsList.size(); i++) 
+      for(Int i =0; i<m_dynamicViewPortPSNRParam.viewPortSettingsList.size(); i++)
       {
         DynViewPortSettings* pDynVP = &(m_dynamicViewPortPSNRParam.viewPortSettingsList[i]);
         printf("Dyanmic viewport %d, hFOV:%.2f, vFOV:%.2f\n", i, pDynVP->hFOV, pDynVP->vFOV);
-        printf("Start viewport setting(POC_%d): %.2f %.2f; End viewport setting(POC_%d): %.2f %.2f\n", pDynVP->iPOC[0], pDynVP->fYaw[0], pDynVP->fPitch[0], pDynVP->iPOC[1], pDynVP->fYaw[1], pDynVP->fPitch[1]);        
+        printf("Start viewport setting(POC_%d): %.2f %.2f; End viewport setting(POC_%d): %.2f %.2f\n", pDynVP->iPOC[0], pDynVP->fYaw[0], pDynVP->fPitch[0], pDynVP->iPOC[1], pDynVP->fYaw[1], pDynVP->fPitch[1]);
       }
     }
     else
@@ -2625,10 +2659,12 @@ Void TExt360AppEncCfg::outputConfigurationSummary()
       printf("Cross-format CPP-PSNR is enabled\n");
 #endif
 #if SVIDEO_ROT_FIX
-    printf("Rotation in 1/100 degrees: (yaw:%d  pitch:%d  roll:%d)\n", m_codingSVideoInfo.sVideoRotation.degree[2], m_codingSVideoInfo.sVideoRotation.degree[1], m_codingSVideoInfo.sVideoRotation.degree[0]); 
+    printf("Rotation in 1/100 degrees: (yaw:%d  pitch:%d  roll:%d)\n", m_codingSVideoInfo.sVideoRotation.degree[2], m_codingSVideoInfo.sVideoRotation.degree[1], m_codingSVideoInfo.sVideoRotation.degree[0]);
 #endif
   }
+#if !defined(VTM_VERSION)
   printf("-----360 video parameters----\n");
+#endif
 }
 
 Bool TExt360AppEncCfg::isGeoConvertSkipped()
