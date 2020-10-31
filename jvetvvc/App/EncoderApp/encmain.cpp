@@ -89,7 +89,20 @@ int main(int argc, char* argv[])
   fprintf( stdout, NVM_ONOS );
   fprintf( stdout, NVM_COMPILEDBY );
   fprintf( stdout, NVM_BITS );
-#if ENABLE_SIMD_OPT
+#if defined(__AVX512F__) || (__AVX512DQ__) || (__AVX512BW__)
+  fprintf( stdout, "[SIMD=AVX512]" );
+#elif defined(__AVX2__)
+  fprintf( stdout, "[SIMD=AVX2]" );
+#elif defined(__AVX__)
+  fprintf( stdout, "[SIMD=AVX]" );
+#elif defined(__SSE4_2__)
+  fprintf( stdout, "[SIMD=SSE4.2]" );
+#elif defined(__SSE4_1__)
+  fprintf( stdout, "[SIMD=SSE4.1]" );
+#else
+  fprintf( stdout, "[SIMD=NONE]" );
+#endif
+/*#if ENABLE_SIMD_OPT
   std::string SIMD;
   df::program_options_lite::Options opts;
   opts.addOptions()
@@ -98,14 +111,21 @@ int main(int argc, char* argv[])
   df::program_options_lite::SilentReporter err;
   df::program_options_lite::scanArgv( opts, argc, ( const char** ) argv, err );
   fprintf( stdout, "[SIMD=%s] ", read_x86_extension( SIMD ) );
-#endif
+#endif*/
 #if ENABLE_TRACING
   fprintf( stdout, "[ENABLE_TRACING] " );
 #endif
-#if ENABLE_SPLIT_PARALLELISM
-  fprintf( stdout, "[SPLIT_PARALLEL (%d jobs)]", PARL_SPLIT_MAX_NUM_JOBS );
+#if EXTENSION_360_VIDEO
+  fprintf( stdout, "\nVVCSoftware: 360Lib Soft Version %s", VERSION_360Lib );
+#endif
+#if EXTENSION_HDRTOOLS
+  fprintf( stdout, "\nVVCSoftware: HDRTools Version %s", VERSION );
 #endif
 #if ENABLE_SPLIT_PARALLELISM
+#include "../../../libgomp/gomp-constants.h"
+#include "../../../libgomp/pthread_win32/_ptw32.h"
+  fprintf( stdout, "\nVVCSoftware: libgomp / pthreads 32bit  : %d.0 / %d.%d ", GOMP_VERSION, __PTW32_VERSION_MAJOR, __PTW32_VERSION_MINOR );
+  fprintf( stdout, "[SPLIT_PARALLEL (%d jobs)]", PARL_SPLIT_MAX_NUM_JOBS );
   const char* waitPolicy = getenv( "OMP_WAIT_POLICY" );
   const char* maxThLim   = getenv( "OMP_THREAD_LIMIT" );
   fprintf( stdout, waitPolicy ? "[OMP: WAIT_POLICY=%s," : "[OMP: WAIT_POLICY=,", waitPolicy );

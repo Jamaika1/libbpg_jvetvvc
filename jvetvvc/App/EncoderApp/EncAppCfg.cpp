@@ -3813,14 +3813,162 @@ void EncAppCfg::xPrintParameter()
   msg( DETAILS, "Input          File                    : %s\n", m_inputFileName.c_str() );
   msg( DETAILS, "Bitstream      File                    : %s\n", m_bitstreamFileName.c_str() );
   msg( DETAILS, "Reconstruction File                    : %s\n", m_reconFileName.c_str() );
-  msg( DETAILS, "Real     Format                        : %dx%d %gHz\n", m_iSourceWidth - m_confWinLeft - m_confWinRight, m_iSourceHeight - m_confWinTop - m_confWinBottom, (double)m_iFrameRate / m_temporalSubsampleRatio );
-  msg( DETAILS, "Internal Format                        : %dx%d %gHz\n", m_iSourceWidth, m_iSourceHeight, (double)m_iFrameRate / m_temporalSubsampleRatio );
+  msg( VERBOSE, "Real     Format                        : %dx%d %gHz\n", m_iSourceWidth - m_confWinLeft - m_confWinRight, m_iSourceHeight - m_confWinTop - m_confWinBottom, (double)m_iFrameRate / m_temporalSubsampleRatio );
+  msg( VERBOSE, "Internal Format                        : %dx%d %gHz\n", m_iSourceWidth, m_iSourceHeight, (double)m_iFrameRate / m_temporalSubsampleRatio );
   msg( DETAILS, "Sequence PSNR output                   : %s\n", ( m_printMSEBasedSequencePSNR ? "Linear average, MSE-based" : "Linear average only" ) );
   msg( DETAILS, "Hexadecimal PSNR output                : %s\n", ( m_printHexPsnr ? "Enabled" : "Disabled" ) );
   msg( DETAILS, "Sequence MSE output                    : %s\n", ( m_printSequenceMSE ? "Enabled" : "Disabled" ) );
   msg( DETAILS, "Frame MSE output                       : %s\n", ( m_printFrameMSE ? "Enabled" : "Disabled" ) );
   msg( DETAILS, "MS-SSIM output                         : %s\n", ( m_printMSSSIM ? "Enabled" : "Disabled") );
   msg( DETAILS, "Cabac-zero-word-padding                : %s\n", ( m_cabacZeroWordPaddingEnabled ? "Enabled" : "Disabled" ) );
+
+  msg( VERBOSE, "Input pixel format / bitdepth          : ");
+  if (m_chromaFormatConstraint == 3 && m_useColorTrans)
+  {
+    msg( VERBOSE, "rgb%d\n",                          3 * (m_inputBitDepth[CHANNEL_TYPE_LUMA]));
+  }
+  else
+  {
+    msg( VERBOSE, "%s%s%s%d\n",                     ( m_chromaFormatConstraint == 0 ? "yuv400" : ( m_chromaFormatConstraint == 3 ? "yuv444" :
+                                                    ( m_chromaFormatConstraint == 2 ? "yuv422" : "yuv420" ) ) ),
+                                                    ( m_interlacedSourceFlag  == false ? "p" : "i" ),
+                                                    ( m_inputBitDepth[CHANNEL_TYPE_LUMA]  == 8 ? "0" : "" ), m_inputBitDepth[CHANNEL_TYPE_LUMA] );
+  }
+  msg( VERBOSE, "Input level / tier                     : %s / %s\n", ( m_level == Level::LEVEL15_5 ? "15.5" : ( m_level == Level::LEVEL6_3 ? "6.3" :
+                                                    ( m_level == Level::LEVEL6_2 ? "6.2" : ( m_level == Level::LEVEL6_1 ? "6.1" :
+                                                    ( m_level == Level::LEVEL6 ? "6.0" : ( m_level == Level::LEVEL5_2 ? "5.2" :
+                                                    ( m_level == Level::LEVEL5_1 ? "5.1" : ( m_level == Level::LEVEL5 ? "5.0" :
+                                                    ( m_level == Level::LEVEL4_1 ? "4.1" : ( m_level == Level::LEVEL4 ? "4.0" :
+                                                    ( m_level == Level::LEVEL3_1 ? "3.1" : ( m_level == Level::LEVEL3 ? "3.0" :
+                                                    ( m_level == Level::LEVEL2_1 ? "2.1" : ( m_level == Level::LEVEL2 ? "2.0" :
+                                                    ( m_level == Level::LEVEL1 ? "1.0" : "Undef" ) ) ) ) ) ) ) ) ) ) ) ) ) ) ),
+                                                                      ( m_levelTier == Level::MAIN ? "main" :
+                                                    ( m_levelTier == Level::HIGH ? "high" : ( m_levelTier == Level::NUMBER_OF_TIERS ? "higher" : "undef" ) ) ) );
+  msg( VERBOSE, "Input signal type                      < \n");
+  msg( VERBOSE, "Input color space / primaries / range  : ");
+  if (!m_lmcsEnabled && m_sampleRange == 1 && m_matrixCoefficients == 0 && m_useColorTrans && m_iQP < 1)
+  {
+    if (m_costMode == COST_STANDARD_LOSSY || m_costMode == COST_MIXED_LOSSLESS_LOSSY_CODING)
+    {
+      msg( VERBOSE, "NearbyLossless < ");
+    }
+    if (m_costMode == COST_LOSSLESS_CODING)
+    {
+      msg( VERBOSE, "Lossless < ");
+    }
+  }
+  /*else if (!m_lmcsEnabled && m_sampleRange == 1 && m_matrixCoefficients == 2)
+  {
+    msg( VERBOSE, "Lossy Full < " );
+  }*/
+  else
+  {
+    msg( VERBOSE, "Lossy < ");
+                                                    //( m_reshapeSignalType == RESHAPE_SIGNAL_NULL ? "SDR Limited" :
+                                                    //( m_reshapeSignalType == RESHAPE_SIGNAL_HLG ? "HDR-HLG 300><1000cd/m2" : "HDR-PQ 1000cd/m2" ) ) );
+  }
+  if (m_lmcsEnabled && (m_reshapeSignalType == RESHAPE_SIGNAL_HLG || m_reshapeSignalType == RESHAPE_SIGNAL_PQ))
+  {
+    msg( VERBOSE, "BT2100 / " );
+  }
+  else
+  {
+    msg( VERBOSE, "%s / ",                          ( m_matrixCoefficients == 0 ? "RGB" :
+                                                    ( m_matrixCoefficients == 10 ? "HDR BT2020c" : ( m_matrixCoefficients == 9 ? "HDR BT2020nc" :
+                                                    ( m_matrixCoefficients == 8 ? "YCgCo" : ( m_matrixCoefficients == 7 ? "SMPTE340" :
+                                                    ( m_matrixCoefficients == 6 ? "BT601^525" : ( m_matrixCoefficients == 5 ? "BT601^625" :
+                                                    ( m_matrixCoefficients == 4 ? "USFCCT47" : ( m_matrixCoefficients == 3 ? "Reserve" :
+                                                    ( m_matrixCoefficients == 2 ? "Undef" : "SDR BT709" ) ) ) ) ) ) ) ) ) ) );
+  }
+#if JVET_O0756_CONFIG_HDRMETRICS || JVET_O0756_CALCULATE_HDRMETRICS
+  if (m_lmcsEnabled && (m_reshapeSignalType == RESHAPE_SIGNAL_HLG || m_reshapeSignalType == RESHAPE_SIGNAL_PQ))
+  {
+    msg( VERBOSE, "BT2100 / " );
+  }
+  else
+  {
+    msg( VERBOSE, "%s / ",                         ( m_colorPrimaries == -1 ? "Undef" :
+                                                   ( m_colorPrimaries == 12 ? "LMSXL" : ( m_colorPrimaries == 11 ? "P3D65N" :
+                                                   ( m_colorPrimaries == 10 ? "BT601" : ( m_colorPrimaries == 9 ? "LMSD" :
+                                                   ( m_colorPrimaries == 8 ? "EXT" : ( m_colorPrimaries == 7 ? "YCgCo" :
+                                                   ( m_colorPrimaries == 6 ? "AMD" : ( m_colorPrimaries == 5 ? "None" :
+                                                   ( m_colorPrimaries == 4 ? "XYZ" : ( m_colorPrimaries == 3 ? "P3D65" :
+                                                   ( m_colorPrimaries == 2 ? "P3D60" : ( m_colorPrimaries == 1 ? "HDR BT2020" : "SDR BT709" ) ) ) ) ) ) ) ) ) ) ) ) ) );
+  }
+#endif
+#if JVET_O0756_CONFIG_HDRMETRICS || JVET_O0756_CALCULATE_HDRMETRICS
+  if (m_lmcsEnabled && (m_reshapeSignalType == RESHAPE_SIGNAL_HLG || m_reshapeSignalType == RESHAPE_SIGNAL_PQ))
+  {
+    msg( VERBOSE, "%s >\n\n",                        ( m_reshapeSignalType == RESHAPE_SIGNAL_HLG ? "HDR HLG 300><1000cd/m2" : "HDR PQ 300><1000cd/m2" ) );
+  }
+  else
+  {
+    msg( VERBOSE, "%s >\n\n",                        ( m_sampleRange ? "PC Range full 10000cd/m2" : "TV SDR limited 100cd/m2" ) );
+  }
+#endif
+  //msg( VERBOSE, "                        range          >\n\n");
+
+  if (m_videoFullRangeFlag)
+  {
+    if (m_lmcsEnabled)
+    {
+      EXIT( "Error: LMCSEnable is enabled. VideoFullRange can't be full with HDR\n");
+    }
+    if (m_sampleRange == 0)
+    {
+      msg(ERROR, "Warning: VideoFullRange shouldn't be full for InputSampleRange limited\n\n");
+    }
+  }
+  else
+  {
+    if (!m_lmcsEnabled && (m_matrixCoefficients == 10 || m_matrixCoefficients == 9 || m_matrixCoefficients == 1))
+    {
+      EXIT( "Error: LMCSEnable is disabled. LMCS can be enabled for YCbCr with color space. \n");
+    }
+  }
+  if (m_useColorTrans)
+  {
+    if (m_chromaFormatIDC != CHROMA_444)
+    {
+      msg(ERROR, "Warning: Chroma subsampling isn't convert yuv444p->rgb\n");
+    }
+    if (m_matrixCoefficients != 0)
+    {
+      msg(ERROR, "Warning: MatrixCoefficients isn't ColorTransform RGB for lossless\n");
+    }
+  }
+  if (m_costMode == COST_LOSSLESS_CODING)
+  {
+    if (m_sampleRange == 0)
+    {
+      msg(ERROR, "Warning: InputSampleRange shouldn't be limited for lossless\n\n");
+    }
+    if (m_interlacedSourceFlag == true)
+    {
+      msg(ERROR, "Warning: Video shouldn't be interlaced for lossless\n");
+    }
+    if (!m_useColorTrans)
+    {
+      msg(ERROR, "Warning: ColorTransform isn't RGB for lossless\n\n"); //JPEG2000 has lossless in YCgCo
+    }
+    if (!m_videoFullRangeFlag)
+    {
+      msg(ERROR, "Warning: VideoFullRange shouldn't be limited for lossless\n\n");
+    }
+    //msg(ERROR, "Warning: InputColorPrimaries should be Undef for image or such as the settings has a camera\n");
+    /*if (m_reshapeSignalType != 0)
+    {
+      EXIT( "Error: LMCSSignalType can't be HDR.\n");
+    }*/
+  }
+  else
+  {
+    if (m_useColorTrans && m_iQP != 0)
+    {
+      msg(ERROR, "Warning: For lossy shouldn't be ColorTransform RGB\n\n");
+    }
+  }
+
   if (m_isField)
   {
     msg( DETAILS, "Frame/Field                            : Field based coding\n" );
