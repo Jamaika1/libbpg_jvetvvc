@@ -4317,7 +4317,10 @@ void EncGOP::xCalculateAddPSNR(Picture* pcPic, PelUnitBuf cPicD, const AccessUni
   }
 
 #if EXTENSION_360_VIDEO
-  m_ext360.calculatePSNRs(pcPic);
+  if (m_bSVideo)
+  {
+    m_ext360.calculatePSNRs(pcPic);
+  }
 #endif
 
 #if JVET_O0756_CALCULATE_HDRMETRICS
@@ -4367,7 +4370,10 @@ void EncGOP::xCalculateAddPSNR(Picture* pcPic, PelUnitBuf cPicD, const AccessUni
   //===== add PSNR =====
   m_gcAnalyzeAll.addResult(dPSNR, (double)uibits, MSEyuvframe, upscaledPSNR, msssim, isEncodeLtRef);
 #if EXTENSION_360_VIDEO
-  m_ext360.addResult(m_gcAnalyzeAll);
+  if (m_bSVideo)
+  {
+    m_ext360.addResult(m_gcAnalyzeAll);
+  }
 #endif
 #if JVET_O0756_CALCULATE_HDRMETRICS
   if (calculateHdrMetrics)
@@ -4380,7 +4386,10 @@ void EncGOP::xCalculateAddPSNR(Picture* pcPic, PelUnitBuf cPicD, const AccessUni
     m_gcAnalyzeI.addResult(dPSNR, (double)uibits, MSEyuvframe, upscaledPSNR, msssim, isEncodeLtRef);
     *PSNR_Y = dPSNR[COMPONENT_Y];
 #if EXTENSION_360_VIDEO
-    m_ext360.addResult(m_gcAnalyzeI);
+    if (m_bSVideo)
+    {
+      m_ext360.addResult(m_gcAnalyzeI);
+    }
 #endif
 #if JVET_O0756_CALCULATE_HDRMETRICS
     if (calculateHdrMetrics)
@@ -4394,7 +4403,10 @@ void EncGOP::xCalculateAddPSNR(Picture* pcPic, PelUnitBuf cPicD, const AccessUni
     m_gcAnalyzeP.addResult(dPSNR, (double)uibits, MSEyuvframe, upscaledPSNR, msssim, isEncodeLtRef);
     *PSNR_Y = dPSNR[COMPONENT_Y];
 #if EXTENSION_360_VIDEO
-    m_ext360.addResult(m_gcAnalyzeP);
+    if (m_bSVideo)
+    {
+      m_ext360.addResult(m_gcAnalyzeP);
+    }
 #endif
 #if JVET_O0756_CALCULATE_HDRMETRICS
     if (calculateHdrMetrics)
@@ -4408,7 +4420,10 @@ void EncGOP::xCalculateAddPSNR(Picture* pcPic, PelUnitBuf cPicD, const AccessUni
     m_gcAnalyzeB.addResult(dPSNR, (double)uibits, MSEyuvframe, upscaledPSNR, msssim, isEncodeLtRef);
     *PSNR_Y = dPSNR[COMPONENT_Y];
 #if EXTENSION_360_VIDEO
-    m_ext360.addResult(m_gcAnalyzeB);
+    if (m_bSVideo)
+    {
+      m_ext360.addResult(m_gcAnalyzeB);
+    }
 #endif
 #if JVET_O0756_CALCULATE_HDRMETRICS
     if (calculateHdrMetrics)
@@ -4445,7 +4460,10 @@ void EncGOP::xCalculateAddPSNR(Picture* pcPic, PelUnitBuf cPicD, const AccessUni
     msg( NOTICE, " [Y %6.4lf dB    U %6.4lf dB    V %6.4lf dB]", dPSNR[COMPONENT_Y], dPSNR[COMPONENT_Cb], dPSNR[COMPONENT_Cr] );
 
 #if EXTENSION_360_VIDEO
-    m_ext360.printPerPOCInfo(NOTICE);
+    if (m_bSVideo)
+    {
+      m_ext360.printPerPOCInfo(NOTICE);
+    }
 #endif
 
     if (m_layerEncoder->getPrintHexPsnr())
@@ -4460,7 +4478,10 @@ void EncGOP::xCalculateAddPSNR(Picture* pcPic, PelUnitBuf cPicD, const AccessUni
       msg(NOTICE, " [xY %16" PRIx64 " xU %16" PRIx64 " xV %16" PRIx64 "]", xPsnr[COMPONENT_Y], xPsnr[COMPONENT_Cb], xPsnr[COMPONENT_Cr]);
 
 #if EXTENSION_360_VIDEO
-      m_ext360.printPerPOCInfo(NOTICE, true);
+      if (m_bSVideo)
+      {
+        m_ext360.printPerPOCInfo(NOTICE, true);
+      }
 #endif
     }
 

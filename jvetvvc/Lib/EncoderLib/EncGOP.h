@@ -54,6 +54,7 @@
 #include "SEIwrite.h"
 #include "SEIEncoder.h"
 #if EXTENSION_360_VIDEO
+#include "AppEncHelper360/TExt360AppEncCfg.h"
 #include "AppEncHelper360/TExt360EncGop.h"
 #endif
 
@@ -256,6 +257,9 @@ public:
 
 protected:
   RateCtrl* getRateCtrl()       { return m_pcRateCtrl;  }
+#if EXTENSION_360_VIDEO
+  TExt360AppEncCfg* m_bSVideo;
+#endif
 
 protected:
 
