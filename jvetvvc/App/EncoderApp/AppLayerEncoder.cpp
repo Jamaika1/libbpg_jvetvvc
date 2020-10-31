@@ -1211,7 +1211,7 @@ void AppLayerEncoder::createLib( const int layerIdx )
 #if EXTENSION_360_VIDEO
   if (m_bSVideo)
   {
-    m_ext360 = new TExt360AppEncTop( *this, m_cEncLib.getGOPEncoder()->getExt360Data(), *( m_cEncLib.getGOPEncoder() ), *m_orgPic );
+    m_ext360 = new TExt360AppEncTop( *this, m_layerEncoder.getGOPEncoder()->getExt360Data(), *( m_layerEncoder.getGOPEncoder() ), *m_orgPic );
   }
 #endif
 
