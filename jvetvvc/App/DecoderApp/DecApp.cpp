@@ -395,7 +395,7 @@ uint32_t DecApp::decode()
         }
         if (firstPicInCVSAUThatIsNotAU0)
         {
-          xFlushOutput(pcListPic, NOT_VALID, m_cDecLib.getNoOutputPriorPicsFlag());
+          xFlushOutput(pcListPic, NOT_VALID, m_cDecLib.getNoOutputPriorPicsFlag(), false);
         }
         else
         {
@@ -447,6 +447,10 @@ uint32_t DecApp::decode()
       m_cDecLib.resetAccessUnitSeiTids();
       m_cDecLib.checkSEIInAccessUnit();
       m_cDecLib.resetAccessUnitSeiPayLoadTypes();
+#if JVET_T0055_ASPECT4
+      m_cDecLib.checkSeiContentInAccessUnit();
+      m_cDecLib.resetAccessUnitSeiNalus();
+#endif
       m_cDecLib.resetAccessUnitNals();
       m_cDecLib.resetAccessUnitApsNals();
       m_cDecLib.resetAccessUnitPicInfo();
@@ -465,7 +469,11 @@ uint32_t DecApp::decode()
   setOutputPicturePresentInStream();
   CHECK(!outputPicturePresentInBitstream, "It is required that there shall be at least one picture with PictureOutputFlag equal to 1 in the bitstream")
 
+#if JVET_S0078_NOOUTPUTPRIORPICFLAG
+  xFlushOutput( pcListPic, NOT_VALID, false, true );
+#else
   xFlushOutput( pcListPic );
+#endif
 
   // get the number of checksum errors
   uint32_t nRet = m_cDecLib.getNumberOfChecksumErrorsDetected();
@@ -733,7 +741,7 @@ void DecApp::xWriteOutput( PicList* pcListPic, uint32_t tId )
 /** \param pcListPic list of pictures to be written to file
  */
 #if JVET_S0078_NOOUTPUTPRIORPICFLAG
-void DecApp::xFlushOutput( PicList *pcListPic, const int layerId, bool noOutputOfPriorPicsFlag)
+void DecApp::xFlushOutput( PicList *pcListPic, const int layerId, bool noOutputOfPriorPicsFlag, bool isEndOfDecoding )
 #else
 void DecApp::xFlushOutput( PicList* pcListPic, const int layerId )
 #endif
@@ -758,7 +766,11 @@ void DecApp::xFlushOutput( PicList* pcListPic, const int layerId )
       iterPic++;
       pcPicBottom = *(iterPic);
 
+#if JVET_S0078_NOOUTPUTPRIORPICFLAG
+      if( (pcPicTop->layerId != layerId && layerId != NOT_VALID) || (!isEndOfDecoding && pcPicTop->getPOC() == m_cDecLib.getLatestPicture()->getPOC()) )
+#else
       if( pcPicTop->layerId != layerId && layerId != NOT_VALID )
+#endif
       {
         continue;
       }
@@ -825,7 +837,11 @@ void DecApp::xFlushOutput( PicList* pcListPic, const int layerId )
     {
       pcPic = *(iterPic);
 
+#if JVET_S0078_NOOUTPUTPRIORPICFLAG
+      if( (pcPic->layerId != layerId && layerId != NOT_VALID) || (!isEndOfDecoding && pcPic->getPOC() == m_cDecLib.getLatestPicture()->getPOC()) )
+#else
       if( pcPic->layerId != layerId && layerId != NOT_VALID )
+#endif
       {
         iterPic++;
         continue;
@@ -889,8 +905,17 @@ void DecApp::xFlushOutput( PicList* pcListPic, const int layerId )
     pcListPic->remove_if([](Picture* p) { return p == nullptr; });
   }
   else
-  pcListPic->clear();
+  {
+    pcListPic->clear();
+  }
   m_iPOCLastDisplay = -MAX_INT;
+
+#if JVET_S0078_NOOUTPUTPRIORPICFLAG
+  if( !isEndOfDecoding )
+  {
+    pcListPic->push_back(m_cDecLib.getLatestPicture());
+  }
+#endif
 }
 
 #if JVET_T0053_ANNOTATED_REGIONS_SEI
@@ -914,7 +939,7 @@ void DecApp::xOutputAnnotatedRegions(PicList* pcListPic)
       for(auto it=annotatedRegionSEIs.begin(); it!=annotatedRegionSEIs.end(); it++)
       {
         const SEIAnnotatedRegions &seiAnnotatedRegions = *(SEIAnnotatedRegions*)(*it);
-        
+
         if (seiAnnotatedRegions.m_hdr.m_cancelFlag)
         {
           m_arObjects.clear();
@@ -951,13 +976,13 @@ void DecApp::xOutputAnnotatedRegions(PicList* pcListPic)
               }
             }
           }
-    
+
           // Process object updates
           for(auto srcIt=seiAnnotatedRegions.m_annotatedRegions.begin(); srcIt!=seiAnnotatedRegions.m_annotatedRegions.end(); srcIt++)
           {
             uint32_t objIdx = srcIt->first;
             const SEIAnnotatedRegions::AnnotatedRegionObject &src =srcIt->second;
-    
+
             if (src.objectCancelFlag)
             {
               m_arObjects.erase(objIdx);
@@ -965,7 +990,7 @@ void DecApp::xOutputAnnotatedRegions(PicList* pcListPic)
             else
             {
               auto destIt = m_arObjects.find(objIdx);
-    
+
               if (destIt == m_arObjects.end())
               {
                 //New object arrived, needs to be appended to the map of tracked objects
@@ -974,7 +999,7 @@ void DecApp::xOutputAnnotatedRegions(PicList* pcListPic)
               else //Existing object, modifications to be done
               {
                 SEIAnnotatedRegions::AnnotatedRegionObject &dst=destIt->second;
-    
+
                 if (seiAnnotatedRegions.m_hdr.m_objectLabelPresentFlag && src.objectLabelValid)
                 {
                   dst.objectLabelValid=true;

@@ -91,7 +91,7 @@ private:
   void  xDestroyDecLib    (); ///< destroy internal classes
   void  xWriteOutput      ( PicList* pcListPic , uint32_t tId); ///< write YUV to file
 #if JVET_S0078_NOOUTPUTPRIORPICFLAG
-  void  xFlushOutput( PicList *pcListPic, const int layerId = NOT_VALID, bool noOutputOfPriorPicsFlag = false );   ///< flush all remaining decoded pictures to file
+  void  xFlushOutput( PicList *pcListPic, const int layerId = NOT_VALID, bool noOutputOfPriorPicsFlag = false, bool isEndOfDecoding = false );   ///< flush all remaining decoded pictures to file
 #else
   void  xFlushOutput( PicList* pcListPic, const int layerId = NOT_VALID ); ///< flush all remaining decoded pictures to file
 #endif
