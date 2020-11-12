@@ -5019,7 +5019,16 @@ NalUnitType EncGOP::getNalUnitType(int pocCurr, int lastIDR, bool isField)
     }
     else if (m_pcCfg->getDecodingRefreshType() == 2)
     {
-      return NAL_UNIT_CODED_SLICE_IDR_W_RADL;
+      SPS *sps = m_layerEncoder->getSPS(m_layerEncoder->getLayerId());
+      if (sps != nullptr)
+      {
+        int maxTLayer = sps->getMaxTLayers() - 1;
+        return sps->getMaxNumReorderPics(maxTLayer) > 0 ? NAL_UNIT_CODED_SLICE_IDR_W_RADL : NAL_UNIT_CODED_SLICE_IDR_N_LP;
+      }
+      else
+      {
+        return NAL_UNIT_CODED_SLICE_IDR_W_RADL;
+      }
     }
   }
   if(m_pocCRA>0)

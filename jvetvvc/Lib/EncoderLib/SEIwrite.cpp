@@ -335,7 +335,7 @@ void SEIWriter::xWriteSEIBufferingPeriod(const SEIBufferingPeriod& sei)
       }
     }
   }
-  if (sei.m_bpMaxSubLayers-1 > 0) 
+  if (sei.m_bpMaxSubLayers-1 > 0)
   {
     WRITE_FLAG(sei.m_sublayerDpbOutputOffsetsPresentFlag, "bp_sublayer_dpb_output_offsets_present_flag");
   }
@@ -507,7 +507,7 @@ void SEIWriter::xWriteSEIScalableNesting(OutputBitstream& bs, const SEIScalableN
     if (!sei.m_snAllLayersFlag)
     {
       WRITE_UVLC(sei.m_snNumLayersMinus1, "sn_num_layers");
-      for (uint32_t i = 0; i <= sei.m_snNumLayersMinus1; i++)
+      for (uint32_t i = 1; i <= sei.m_snNumLayersMinus1; i++)
       {
         WRITE_CODE(sei.m_snLayerId[i], 6, "sn_layer_id");
       }
