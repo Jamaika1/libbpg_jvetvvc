@@ -686,7 +686,7 @@ void Slice::checkRPL(const ReferencePictureList* pRPL0, const ReferencePictureLi
           {
             CHECK( refPicDecodingOrderNumber < associatedIRAPDecodingOrderNumber, "RADL picture detected that violate the rule that no active entry in RefPicList[] shall precede the associated IRAP picture in decoding order" );
 #if JVET_S0084_S0110_RADL
-            // Checking this: "When the current picture is a RADL picture, there shall be no active entry in RefPicList[ 0 ] or 
+            // Checking this: "When the current picture is a RADL picture, there shall be no active entry in RefPicList[ 0 ] or
             // RefPicList[ 1 ] that is any of the following: A RASL picture with pps_mixed_nalu_types_in_pic_flag is equal to 0
             for (int i = 0; i < pcRefPic->numSlices; i++)
             {
@@ -701,6 +701,21 @@ void Slice::checkRPL(const ReferencePictureList* pRPL0, const ReferencePictureLi
 
           CHECK( pcRefPic->temporalId > m_pcPic->temporalId, "The picture referred to by each active entry in RefPicList[ 0 ] or RefPicList[ 1 ] shall be present in the DPB and shall have TemporalId less than or equal to that of the current picture." );
         }
+#if JVET_R0046_IRAP_ASPECT2
+        // Add a constraint on an ILRP being either an IRAP picture or having TemporalId less than or equal to
+        // Max( 0, vps_max_tid_il_ref_pics_plus1[ refPicVpsLayerId ] − 1 ), with refPicVpsLayerId equal to the value of
+        // the nuh_layer_id of the referenced picture.
+        bool isIRap = m_eNalUnitType == NAL_UNIT_CODED_SLICE_CRA || m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_W_RADL
+                      || m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_N_LP;
+        int refLayerIdx = pcRefPic->cs->vps == nullptr ? 0 : pcRefPic->cs->vps->getGeneralLayerIdx(pcRefPic->layerId);
+        CHECK((m_eNalUnitType == NAL_UNIT_CODED_SLICE_GDR && getPicHeader()->getRecoveryPocCnt() == 0) || isIRap
+                || (m_pcPic->temporalId < m_pcPic->cs->vps->getMaxTidIlRefPicsPlus1(layerIdx, refLayerIdx)),
+              "Either of the following conditions shall apply:- The picture is a GDR picture with "
+              "ph_recovery_poc_cnt equal to 0 or an IRAP picture."
+              "-The picture has TemporalId less than vps_max_tid_il_ref_pics_plus1[ currLayerIdx ][ refLayerIdx ], "
+              "where currLayerIdx and refLayerIdx are equal to "
+              "GeneralLayerIdx[ nuh_layer_id ] and GeneralLayerIdx[ refpicLayerId ], respectively. ");
+#endif
       }
     }
   }
@@ -1089,14 +1104,25 @@ void Slice::checkLeadingPictureRestrictions(PicList& rcListPic, const PPS& pps) 
     }
     const Slice* pcSlice = pcPic->slices[0];
 
-    if (pcSlice->getPicHeader()->getPicOutputFlag() == 1 && !this->getNoOutputOfPriorPicsFlag() && pcPic->layerId == this->m_nuhLayerId)
+#if JVET_S0078_NOOUTPUTPRIORPICFLAG
+    if( this->getPicHeader()->getPicOutputFlag() == 1 && pcSlice->m_nuhLayerId == this->m_nuhLayerId && (this->getNalUnitType() == NAL_UNIT_CODED_SLICE_TRAIL || this->getNalUnitType() == NAL_UNIT_CODED_SLICE_STSA ) )
     {
-      if ((nalUnitType == NAL_UNIT_CODED_SLICE_CRA || nalUnitType == NAL_UNIT_CODED_SLICE_IDR_N_LP || nalUnitType == NAL_UNIT_CODED_SLICE_IDR_W_RADL) && !pps.getMixedNaluTypesInPicFlag())
+      if( (pcSlice->getNalUnitType() == NAL_UNIT_CODED_SLICE_CRA || pcSlice->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR_N_LP || pcSlice->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR_W_RADL) && !pcSlice->getPPS()->getMixedNaluTypesInPicFlag())
+      {
+        CHECK(pcSlice->getPOC() >= this->getPOC(), "Any picture, with nuh_layer_id equal to a particular value layerId, that precedes an IRAP picture with nuh_layer_id "
+              "equal to layerId in decoding order shall precede the IRAP picture in output order.");
+      }
+    }
+#else
+    if( pcSlice->getPicHeader()->getPicOutputFlag() == 1 && !this->getNoOutputOfPriorPicsFlag() && pcPic->layerId == this->m_nuhLayerId )
+    {
+      if( (nalUnitType == NAL_UNIT_CODED_SLICE_CRA || nalUnitType == NAL_UNIT_CODED_SLICE_IDR_N_LP || nalUnitType == NAL_UNIT_CODED_SLICE_IDR_W_RADL) && !pps.getMixedNaluTypesInPicFlag() )
       {
         CHECK(pcPic->poc >= this->getPOC(), "Any picture, with nuh_layer_id equal to a particular value layerId, that precedes an IRAP picture with nuh_layer_id "
               "equal to layerId in decoding order shall precede the IRAP picture in output order.");
       }
     }
+#endif
 
     if (pcSlice->getPicHeader()->getPicOutputFlag() == 1 && pcPic->layerId == this->m_nuhLayerId)
     {
@@ -1123,7 +1149,7 @@ void Slice::checkLeadingPictureRestrictions(PicList& rcListPic, const PPS& pps) 
       }
     }
 
-    if ((nalUnitType == NAL_UNIT_CODED_SLICE_RASL || nalUnitType == NAL_UNIT_CODED_SLICE_RADL) && 
+    if ((nalUnitType == NAL_UNIT_CODED_SLICE_RASL || nalUnitType == NAL_UNIT_CODED_SLICE_RADL) &&
       (pcSlice->getNalUnitType() != NAL_UNIT_CODED_SLICE_RASL && pcSlice->getNalUnitType() != NAL_UNIT_CODED_SLICE_RADL) && !pps.getMixedNaluTypesInPicFlag())
     {
       if (pcSlice->getAssociatedIRAPPOC() == this->getAssociatedIRAPPOC() && pcPic->layerId == this->m_nuhLayerId)
@@ -1241,13 +1267,23 @@ void Slice::checkSubpicTypeConstraints(PicList& rcListPic, const ReferencePictur
         }
       }
 
-      if ((nalUnitType == NAL_UNIT_CODED_SLICE_CRA || nalUnitType == NAL_UNIT_CODED_SLICE_IDR_N_LP || nalUnitType == NAL_UNIT_CODED_SLICE_IDR_W_RADL) &&
-        !this->getNoOutputOfPriorPicsFlag() && isBufPicOutput == 1 && bufPic->layerId == m_nuhLayerId)
+#if JVET_S0078_NOOUTPUTPRIORPICFLAG
+      if (isBufPicOutput == 1 && bufPic->layerId == m_nuhLayerId && (this->getNalUnitType() == NAL_UNIT_CODED_SLICE_TRAIL || this->getNalUnitType() == NAL_UNIT_CODED_SLICE_STSA) )
+      {
+        if( (bufSubpicType == NAL_UNIT_CODED_SLICE_CRA || bufSubpicType == NAL_UNIT_CODED_SLICE_IDR_N_LP || bufSubpicType == NAL_UNIT_CODED_SLICE_IDR_W_RADL) && !bufPic->slices[0]->getPPS()->getMixedNaluTypesInPicFlag())
+        {
+           CHECK(bufPic->poc >= this->getPOC(), "Any subpicture, with nuh_layer_id equal to a particular value layerId and subpicture index equal to a particular value subpicIdx, that precedes, in decoding order, an IRAP subpicture with nuh_layer_id equal to layerId and subpicture index equal to subpicIdx shall precede, in output order, the IRAP subpicture");
+        }
+      }
+#else
+      if( (nalUnitType == NAL_UNIT_CODED_SLICE_CRA || nalUnitType == NAL_UNIT_CODED_SLICE_IDR_N_LP || nalUnitType == NAL_UNIT_CODED_SLICE_IDR_W_RADL) &&
+        !this->getNoOutputOfPriorPicsFlag() && isBufPicOutput == 1 && bufPic->layerId == m_nuhLayerId )
       {
         CHECK(bufPic->poc >= getPOC(), "Any subpicture, with nuh_layer_id equal to a particular value layerId and subpicture index equal to a particular value subpicIdx, that "
           "precedes, in decoding order, an IRAP subpicture with nuh_layer_id equal to layerId and subpicture index equal to subpicIdx shall precede, in output order, the "
           "IRAP subpicture");
       }
+#endif
 
       if (nalUnitType == NAL_UNIT_CODED_SLICE_RADL && isBufPicOutput == 1 && bufPic->layerId == m_nuhLayerId &&
         prevIRAPSubpicPOC > bufSubpicPrevIRAPSubpicPOC && prevIRAPSubpicPOC != bufPic->poc)
@@ -3480,7 +3516,7 @@ void PPS::initSubPic(const SPS &sps)
     m_subPics[i].setSubPicWidthInCTUs(sps.getSubPicWidth(i));
     m_subPics[i].setSubPicHeightInCTUs(sps.getSubPicHeight(i));
 
-    uint32_t firstCTU = sps.getSubPicCtuTopLeftY(i) * m_picWidthInCtu + sps.getSubPicCtuTopLeftX(i); 	
+    uint32_t firstCTU = sps.getSubPicCtuTopLeftY(i) * m_picWidthInCtu + sps.getSubPicCtuTopLeftX(i);
     m_subPics[i].setFirstCTUInSubPic(firstCTU);
     uint32_t lastCTU = (sps.getSubPicCtuTopLeftY(i) + sps.getSubPicHeight(i) - 1) * m_picWidthInCtu + sps.getSubPicCtuTopLeftX(i) + sps.getSubPicWidth(i) - 1;
     m_subPics[i].setLastCTUInSubPic(lastCTU);
