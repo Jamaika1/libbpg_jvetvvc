@@ -789,7 +789,7 @@ void DecLib::finishPicture(int &poc, PicList *&rpcListPic, MsgLevel msgl, bool a
     else if (pcSlice->getPPS()->getMixedNaluTypesInPicFlag())
     {
       bool isRaslPic = true;
-      for (int i = 0; isRaslPic && i < m_pcPic->numSlices; i++) 
+      for (int i = 0; isRaslPic && i < m_pcPic->numSlices; i++)
       {
         if (!(pcSlice->getNalUnitType() == NAL_UNIT_CODED_SLICE_RASL || pcSlice->getNalUnitType() == NAL_UNIT_CODED_SLICE_RADL))
         {
@@ -1102,7 +1102,7 @@ void DecLib::checkSEIInAccessUnit()
  - Count the number of identical SEI messages in the current picture
  */
 void DecLib::checkSeiInPictureUnit()
-{  
+{
   std::vector<std::tuple<int, uint32_t, uint8_t*>> seiList;
 
   // payload types subject to constrained SEI repetition
@@ -1114,7 +1114,7 @@ void DecLib::checkSeiInPictureUnit()
     InputBitstream bs = sei->getBitstream();
 
     do
-    {  
+    {
       int payloadType = 0;
       uint32_t val = 0;
 
@@ -1130,7 +1130,7 @@ void DecLib::checkSeiInPictureUnit()
         bs.readByte(val);
         payloadSize += val;
       } while (val==0xFF);
-    
+
       uint8_t *payload = new uint8_t[payloadSize];
       for (uint32_t i = 0; i < payloadSize; i++)
       {
@@ -1145,7 +1145,7 @@ void DecLib::checkSeiInPictureUnit()
   // count repeated messages in list
   for (uint32_t i = 0; i < seiList.size(); i++)
   {
-    int      k, count = 1;      
+    int      k, count = 1;
     int      payloadType1 = std::get<0>(seiList[i]);
     uint32_t payloadSize1 = std::get<1>(seiList[i]);
     uint8_t  *payload1    = std::get<2>(seiList[i]);
@@ -1169,7 +1169,7 @@ void DecLib::checkSeiInPictureUnit()
       int      payloadType2 = std::get<0>(seiList[j]);
       uint32_t payloadSize2 = std::get<1>(seiList[j]);
       uint8_t  *payload2    = std::get<2>(seiList[j]);
-      
+
       // check for identical SEI type, size, and payload
       if(payloadType1 == payloadType2 && payloadSize1 == payloadSize2)
       {
@@ -1178,7 +1178,7 @@ void DecLib::checkSeiInPictureUnit()
           count++;
         }
       }
-    }    
+    }
     CHECK(count > 4, "There shall be less than or equal to 4 identical sei_payload( ) syntax structures within a picture unit.");
   }
 
@@ -1194,7 +1194,7 @@ void DecLib::checkSeiInPictureUnit()
 /**
  - Reset list of SEI NAL units from the current picture
  */
-void DecLib::resetPictureSeiNalus()   
+void DecLib::resetPictureSeiNalus()
 {
   while (!m_pictureSeiNalus.empty())
   {
@@ -1202,6 +1202,166 @@ void DecLib::resetPictureSeiNalus()
     m_pictureSeiNalus.pop_front();
   }
 }
+
+#if JVET_T0055_ASPECT4
+void DecLib::checkSeiContentInAccessUnit()
+{
+  std::vector<std::tuple<int, int, bool, uint32_t, uint8_t*>> seiList;
+
+  // get the OLSs that cover all layers
+  std::vector<uint32_t> olsIds;
+  for (uint32_t i = 0; i < m_vps->getNumOutputLayerSets(); i++)
+  {
+    bool olsIncludeAllLayersFind = false;
+    for (auto pic = m_firstAccessUnitPicInfo.begin(); pic != m_firstAccessUnitPicInfo.end(); pic++)
+    {
+      int targetLayerId = pic->m_nuhLayerId;
+      for (int j = 0; j < m_vps->getNumLayersInOls(i); j++)
+      {
+        olsIncludeAllLayersFind = m_vps->getLayerIdInOls(i, j) == targetLayerId ? true : false;
+        if (olsIncludeAllLayersFind)
+        {
+          break;
+        }
+      }
+      if (!olsIncludeAllLayersFind)
+      {
+        break;
+      }
+    }
+    if (olsIncludeAllLayersFind)
+    {
+      olsIds.push_back(i);
+    }
+  }
+
+  // extract SEI messages from NAL units
+  for (auto &sei : m_accessUnitSeiNalus)
+  {
+    InputBitstream bs = sei->getBitstream();
+
+    do
+    {
+      int payloadType = 0;
+      int payloadLayerId = sei->m_nuhLayerId;
+      uint32_t val = 0;
+
+      do
+      {
+        bs.readByte(val);
+        payloadType += val;
+      } while (val==0xFF);
+
+      uint32_t payloadSize = 0;
+      do
+      {
+        bs.readByte(val);
+        payloadSize += val;
+      } while (val==0xFF);
+
+      if (payloadType != SEI::SCALABLE_NESTING && payloadType != SEI::USER_DATA_REGISTERED_ITU_T_T35 && payloadType != SEI::USER_DATA_UNREGISTERED)
+      {
+        if (payloadType == SEI::BUFFERING_PERIOD || payloadType == SEI::PICTURE_TIMING || payloadType == SEI::DECODING_UNIT_INFO || payloadType == SEI::SUBPICTURE_LEVEL_INFO)
+        {
+          uint8_t *payload = new uint8_t[payloadSize];
+          for (uint32_t i = 0; i < payloadSize; i++)
+          {
+            bs.readByte(val);
+            payload[i] = (uint8_t)val;
+          }
+          for (uint32_t i = 0; i < olsIds.size(); i++)
+          {
+            if (i == 0)
+            {
+              seiList.push_back(std::tuple<int, int, bool, uint32_t, uint8_t*>(payloadType, olsIds.at(i), false, payloadSize, payload));
+            }
+            else
+            {
+              uint8_t *payloadTemp = new uint8_t[payloadSize];
+              memcpy(payloadTemp, payload, payloadSize *sizeof(uint8_t));
+              seiList.push_back(std::tuple<int, int, bool, uint32_t, uint8_t*>(payloadType, olsIds.at(i), false, payloadSize, payloadTemp));
+            }
+          }
+        }
+        else
+        {
+          uint8_t *payload = new uint8_t[payloadSize];
+          for (uint32_t i = 0; i < payloadSize; i++)
+          {
+            bs.readByte(val);
+            payload[i] = (uint8_t)val;
+          }
+          seiList.push_back(std::tuple<int, int, bool, uint32_t, uint8_t*>(payloadType, payloadLayerId, false, payloadSize, payload));
+        }
+      }
+      else
+      {
+        m_seiReader.parseAndExtractSEIScalableNesting(&bs, sei->m_nalUnitType, payloadLayerId, &seiList);
+      }
+    }
+    while (bs.getNumBitsLeft() > 8);
+  }
+
+  // check contents of the repeated messages in list
+  for (uint32_t i = 0; i < seiList.size(); i++)
+  {
+    int      payloadType1 = std::get<0>(seiList[i]);
+    int      payLoadLayerId1 = std::get<1>(seiList[i]);
+    bool     payLoadNested1 = std::get<2>(seiList[i]);
+    uint32_t payloadSize1 = std::get<3>(seiList[i]);
+    uint8_t  *payload1    = std::get<4>(seiList[i]);
+
+    // compare current SEI message with remaining messages in the list
+    for (uint32_t j = i+1; j < seiList.size(); j++)
+    {
+      int      payloadType2 = std::get<0>(seiList[j]);
+      int      payLoadLayerId2 = std::get<1>(seiList[j]);
+      bool     payLoadNested2 = std::get<2>(seiList[j]);
+      uint32_t payloadSize2 = std::get<3>(seiList[j]);
+      uint8_t  *payload2    = std::get<4>(seiList[j]);
+
+      // check for identical SEI type, olsId or layerId, size, and payload
+      if (payloadType1 == SEI::BUFFERING_PERIOD || payloadType1 == SEI::PICTURE_TIMING || payloadType1 == SEI::DECODING_UNIT_INFO || payloadType1 == SEI::SUBPICTURE_LEVEL_INFO)
+      {
+        CHECK((payloadType1 == payloadType2) && (payLoadLayerId1 == payLoadLayerId2) && ((payloadSize1 != payloadSize2) || memcmp(payload1, payload2, payloadSize1*sizeof(uint8_t))), "When there are multiple SEI messages with a particular value of payloadType not equal to 133 that are associated with a particular AU or DU and apply to a particular OLS or layer, regardless of whether some or all of these SEI messages are scalable-nested, the SEI messages shall have the same SEI payload content.");
+      }
+      else
+      {
+        bool bSameLayer = false;
+        if (!(payLoadNested1 xor payLoadNested2))
+        {
+          bSameLayer = (payLoadLayerId1 == payLoadLayerId2);
+        }
+        else
+        {
+          bSameLayer = payLoadNested1 ? payLoadLayerId2 >= payLoadLayerId1 : payLoadLayerId1 >= payLoadLayerId2;
+        }
+        CHECK(payloadType1 == payloadType2 && bSameLayer && ((payloadSize1 != payloadSize2) || memcmp(payload1, payload2, payloadSize1*sizeof(uint8_t))), "When there are multiple SEI messages with a particular value of payloadType not equal to 133 that are associated with a particular AU or DU and apply to a particular OLS or layer, regardless of whether some or all of these SEI messages are scalable-nested, the SEI messages shall have the same SEI payload content.");
+      }
+    }
+  }
+
+  // free SEI message list memory
+  for (uint32_t i = 0; i < seiList.size(); i++)
+  {
+    uint8_t *payload = std::get<4>(seiList[i]);
+    delete[] payload;
+  }
+  seiList.clear();
+}
+
+/**
+ - Reset list of SEI NAL units from the current access unit
+ */
+void DecLib::resetAccessUnitSeiNalus()
+{
+  while (!m_accessUnitSeiNalus.empty())
+  {
+    delete m_accessUnitSeiNalus.front();
+    m_accessUnitSeiNalus.pop_front();
+  }
+}
+#endif
 
 /**
  - Determine if the first VCL NAL unit of a picture is also the first VCL NAL of an Access Unit
@@ -1494,7 +1654,7 @@ void DecLib::xActivateParameterSets( const InputNALUnit nalu )
       //No VPS in bitstream: set defaults values of variables in VPS to the ones signalled in SPS
       m_vps->setMaxSubLayers( sps->getMaxTLayers() );
       m_vps->setLayerId( 0, sps->getLayerId() );
-      m_vps->deriveOutputLayerSets(); 
+      m_vps->deriveOutputLayerSets();
     }
     else
     {
@@ -1709,7 +1869,7 @@ void DecLib::xCheckParameterSetConstraints(const int layerId)
   const SPS *sps = slice->getSPS();
   const PPS *pps = slice->getPPS();
   const VPS *vps = slice->getVPS();
-  
+
   if (sps->getVPSId() && (vps != nullptr))
   {
     if ((layerId == vps->getLayerId(0)) && m_firstSliceInSequence[layerId])
@@ -1915,7 +2075,7 @@ void DecLib::xCheckParameterSetConstraints(const int layerId)
   }
 
   if( sps->getVPSId() && vps->m_numLayersInOls[vps->m_targetOlsIdx] == 1 )
-  {    
+  {
     CHECK( !sps->getPtlDpbHrdParamsPresentFlag(), "When sps_video_parameter_set_id is greater than 0 and there is an OLS that contains only one layer with nuh_layer_id equal to the nuh_layer_id of the SPS, the value of sps_ptl_dpb_hrd_params_present_flag shall be equal to 1" );
   }
 
@@ -1965,6 +2125,9 @@ void DecLib::xParsePrefixSEImessages()
   while (!m_prefixSEINALUs.empty())
   {
     InputNALUnit &nalu=*m_prefixSEINALUs.front();
+#if JVET_T0055_ASPECT4
+    m_accessUnitSeiNalus.push_back(new InputNALUnit(nalu));
+#endif
     m_accessUnitSeiTids.push_back(nalu.m_temporalId);
     const SPS *sps = m_parameterSetManager.getActiveSPS();
     const VPS *vps = m_parameterSetManager.getVPS(sps->getVPSId());
@@ -2118,6 +2281,7 @@ bool DecLib::xDecodeSlice(InputNALUnit &nalu, int &iSkipFrame, int iPOCLastDispl
 
   DTRACE_UPDATE( g_trace_ctx, std::make_pair( "poc", m_apcSlicePilot->getPOC() ) );
 
+#if !JVET_S0078_NOOUTPUTPRIORPICFLAG  //This code is not actually not needed since it is called after xFlushOutput has been called
   if ((m_bFirstSliceInPicture ||
         m_apcSlicePilot->getNalUnitType() == NAL_UNIT_CODED_SLICE_CRA ||
         m_apcSlicePilot->getNalUnitType() == NAL_UNIT_CODED_SLICE_GDR) &&
@@ -2126,7 +2290,7 @@ bool DecLib::xDecodeSlice(InputNALUnit &nalu, int &iSkipFrame, int iPOCLastDispl
       checkNoOutputPriorPics(&m_cListPic);
       setNoOutputPriorPicsFlag (false);
     }
-
+#endif
   xUpdatePreviousTid0POC(m_apcSlicePilot);
 
   m_apcSlicePilot->setPrevGDRInSameLayerPOC(m_prevGDRInSameLayerPOC[nalu.m_nuhLayerId]);
@@ -2136,6 +2300,9 @@ bool DecLib::xDecodeSlice(InputNALUnit &nalu, int &iSkipFrame, int iPOCLastDispl
   if( m_apcSlicePilot->getRapPicFlag() || m_apcSlicePilot->getNalUnitType() == NAL_UNIT_CODED_SLICE_GDR )
   {
     // Derive NoOutputBeforeRecoveryFlag
+#if JVET_S0078_NOOUTPUTPRIORPICFLAG
+    m_picHeader.setNoOutputBeforeRecoveryFlag(false);
+#endif
     if( !pps->getMixedNaluTypesInPicFlag() )
     {
       if( m_firstSliceInSequence[nalu.m_nuhLayerId] )
@@ -2161,10 +2328,12 @@ bool DecLib::xDecodeSlice(InputNALUnit &nalu, int &iSkipFrame, int iPOCLastDispl
     {
       m_apcSlicePilot->setNoOutputOfPriorPicsFlag(true);
     }
+#if !JVET_S0078_NOOUTPUTPRIORPICFLAG
     else
     {
       m_apcSlicePilot->setNoOutputOfPriorPicsFlag(false);
     }
+#endif
 
     if (m_apcSlicePilot->getNalUnitType() == NAL_UNIT_CODED_SLICE_CRA || m_apcSlicePilot->getNalUnitType() == NAL_UNIT_CODED_SLICE_GDR)
     {
@@ -2280,9 +2449,9 @@ bool DecLib::xDecodeSlice(InputNALUnit &nalu, int &iSkipFrame, int iPOCLastDispl
     int refPicIndex;
     while ((lostPoc = m_apcSlicePilot->checkThatAllRefPicsAreAvailable(m_cListPic, m_apcSlicePilot->getRPL0(), 0, true, &refPicIndex, m_apcSlicePilot->getNumRefIdx(REF_PIC_LIST_0))) > 0)
     {
-      if( !pps->getMixedNaluTypesInPicFlag() && ( 
+      if( !pps->getMixedNaluTypesInPicFlag() && (
       ( ( m_apcSlicePilot->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR_W_RADL || m_apcSlicePilot->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR_N_LP ) && ( sps->getIDRRefParamListPresent() || pps->getRplInfoInPhFlag() ) ) ||
-        ( ( m_apcSlicePilot->getNalUnitType() == NAL_UNIT_CODED_SLICE_GDR || m_apcSlicePilot->getNalUnitType() == NAL_UNIT_CODED_SLICE_CRA ) && m_picHeader.getNoOutputBeforeRecoveryFlag() ) ) ) 
+        ( ( m_apcSlicePilot->getNalUnitType() == NAL_UNIT_CODED_SLICE_GDR || m_apcSlicePilot->getNalUnitType() == NAL_UNIT_CODED_SLICE_CRA ) && m_picHeader.getNoOutputBeforeRecoveryFlag() ) ) )
       {
         if (m_apcSlicePilot->getRPL0()->isInterLayerRefPic(refPicIndex) == 0)
         {
@@ -2296,7 +2465,7 @@ bool DecLib::xDecodeSlice(InputNALUnit &nalu, int &iSkipFrame, int iPOCLastDispl
     }
     while ((lostPoc = m_apcSlicePilot->checkThatAllRefPicsAreAvailable(m_cListPic, m_apcSlicePilot->getRPL1(), 0, true, &refPicIndex, m_apcSlicePilot->getNumRefIdx(REF_PIC_LIST_1))) > 0)
     {
-      if( !pps->getMixedNaluTypesInPicFlag() && ( 
+      if( !pps->getMixedNaluTypesInPicFlag() && (
         ( ( m_apcSlicePilot->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR_W_RADL || m_apcSlicePilot->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR_N_LP ) && ( sps->getIDRRefParamListPresent() || pps->getRplInfoInPhFlag() ) ) ||
         ( ( m_apcSlicePilot->getNalUnitType() == NAL_UNIT_CODED_SLICE_GDR || m_apcSlicePilot->getNalUnitType() == NAL_UNIT_CODED_SLICE_CRA ) && m_picHeader.getNoOutputBeforeRecoveryFlag() ) ) )
       {
@@ -2817,7 +2986,7 @@ void DecLib::xDecodeAPS(InputNALUnit& nalu)
   {
     APS* apsEnc = new APS();
     *apsEnc = *aps;
-    m_apsMapEnc->storePS( ( apsEnc->getAPSId() << NUM_APS_TYPE_LEN ) + apsEnc->getAPSType(), apsEnc ); 
+    m_apsMapEnc->storePS( ( apsEnc->getAPSId() << NUM_APS_TYPE_LEN ) + apsEnc->getAPSType(), apsEnc );
   }
 
   // aps will be deleted if it was already stored (and did not changed),
@@ -2891,6 +3060,9 @@ bool DecLib::decode(InputNALUnit& nalu, int& iSkipFrame, int& iPOCLastDisplay, i
       if (m_pcPic)
       {
         m_pictureSeiNalus.push_back(new InputNALUnit(nalu));
+#if JVET_T0055_ASPECT4
+        m_accessUnitSeiNalus.push_back(new InputNALUnit(nalu));
+#endif
         m_accessUnitSeiTids.push_back(nalu.m_temporalId);
         const SPS *sps = m_parameterSetManager.getActiveSPS();
         const VPS *vps = m_parameterSetManager.getVPS(sps->getVPSId());

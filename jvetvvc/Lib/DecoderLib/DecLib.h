@@ -185,6 +185,9 @@ private:
 
   std::vector<NalUnitType> m_pictureUnitNals;
   std::list<InputNALUnit*> m_pictureSeiNalus;
+#if JVET_T0055_ASPECT4
+  std::list<InputNALUnit*> m_accessUnitSeiNalus;
+#endif
 
 #if JVET_S0163_ON_TARGETOLS_SUBLAYERS
   OPI*                    m_opi;
@@ -219,6 +222,10 @@ public:
   );
   bool  decode(InputNALUnit& nalu, int& iSkipFrame, int& iPOCLastDisplay, int iTargetOlsIdx);
   void  deletePicBuffer();
+
+#if JVET_S0078_NOOUTPUTPRIORPICFLAG
+  Picture *getLatestPicture() { return m_pcPic; }
+#endif
 
   void  executeLoopFilters();
   void finishPicture(int &poc, PicList *&rpcListPic, MsgLevel msgl = INFO, bool associatedWithNewClvs = false);
@@ -258,6 +265,10 @@ public:
   void checkTidLayerIdInAccessUnit();
   void resetAccessUnitSeiPayLoadTypes()   { m_accessUnitSeiPayLoadTypes.clear(); }
   void checkSEIInAccessUnit();
+#if JVET_T0055_ASPECT4
+  void checkSeiContentInAccessUnit();
+  void resetAccessUnitSeiNalus();
+#endif
   void checkLayerIdIncludedInCvss();
   void CheckNoOutputPriorPicFlagsInAccessUnit();
   void resetAccessUnitNoOutputPriorPicFlags() { m_accessUnitNoOutputPriorPicFlags.clear(); }

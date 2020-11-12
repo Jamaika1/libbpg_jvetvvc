@@ -563,7 +563,7 @@ void HLSyntaxReader::parsePPS( PPS* pcPPS )
         }
 
         if( tileIdx / pcPPS->getNumTileColumns() != pcPPS->getNumTileRows() - 1  &&
-         ( pcPPS->getTileIdxDeltaPresentFlag() || tileIdx % pcPPS->getNumTileColumns() == 0 ) ) 
+         ( pcPPS->getTileIdxDeltaPresentFlag() || tileIdx % pcPPS->getNumTileColumns() == 0 ) )
         {
           READ_UVLC( uiCode, "pps_slice_height_in_tiles_minus1[i]" );
           pcPPS->setSliceHeightInTiles( i, uiCode + 1 );
@@ -689,7 +689,7 @@ void HLSyntaxReader::parsePPS( PPS* pcPPS )
   READ_FLAG(uiCode, "pps_ref_wraparound_enabled_flag");           pcPPS->setWrapAroundEnabledFlag( uiCode ? true : false );
   if (pcPPS->getWrapAroundEnabledFlag())
   {
-    READ_UVLC(uiCode, "pps_ref_wraparound_offset");               
+    READ_UVLC(uiCode, "pps_ref_wraparound_offset");
     pcPPS->setPicWidthMinusWrapAroundOffset(uiCode);
   }
   else
@@ -1528,7 +1528,7 @@ void HLSyntaxReader::parseSPS(SPS* pcSPS)
   READ_FLAG( uiCode, "sps_entry_point_offsets_present_flag");   pcSPS->setEntryPointsPresentFlag(uiCode == 1);
   READ_CODE(4, uiCode, "sps_log2_max_pic_order_cnt_lsb_minus4");     pcSPS->setBitsForPOC( 4 + uiCode );
   CHECK(uiCode > 12, "sps_log2_max_pic_order_cnt_lsb_minus4 shall be in the range of 0 to 12");
-  
+
   READ_FLAG(uiCode, "sps_poc_msb_cycle_flag");                    pcSPS->setPocMsbCycleFlag(uiCode ? true : false);
   if (pcSPS->getPocMsbCycleFlag())
   {
@@ -1768,7 +1768,7 @@ void HLSyntaxReader::parseSPS(SPS* pcSPS)
     for (uint32_t ii = 0; ii < numberOfRPL; ii++)
       copyRefPicList(pcSPS, rplListSource->getReferencePictureList(ii), rplListDest->getReferencePictureList(ii));
   }
-  
+
 
   READ_FLAG(uiCode, "sps_ref_wraparound_enabled_flag");                  pcSPS->setWrapAroundEnabledFlag( uiCode ? true : false );
 
@@ -2128,13 +2128,13 @@ void HLSyntaxReader::parseOPI(OPI* opi)
   READ_FLAG(symbol, "opi_htid_info_present_flag");
   opi->setHtidInfoPresentFlag(symbol);
 
-  if (opi->getOlsInfoPresentFlag()) 
+  if (opi->getOlsInfoPresentFlag())
   {
-    READ_UVLC(symbol, "opi_ols_idx");  
+    READ_UVLC(symbol, "opi_ols_idx");
     opi->setOpiOlsIdx(symbol);
   }
 
-  if (opi->getHtidInfoPresentFlag()) 
+  if (opi->getHtidInfoPresentFlag())
   {
     READ_CODE(3, symbol, "opi_htid_plus1");
     opi->setOpiHtidPlus1(symbol);
@@ -2919,6 +2919,12 @@ void HLSyntaxReader::parsePictureHeader( PicHeader* picHeader, ParameterSetManag
           *rpl = *sps->getRPLList( listIdx )->getReferencePictureList(picHeader->getRPLIdx( listIdx ));
         }
       }
+#if JVET_S0096_RPL_CONSTRAINT
+      if (picHeader->getPicInterSliceAllowedFlag() && listIdx == 0)
+      {
+          CHECK(picHeader->getRPL(0)->getNumRefEntries() <= 0, "When pps_rpl_info_in_ph_flag is equal to 1 and ph_inter_slice_allowed_flag is equal to 1, the value of num_ref_entries[ 0 ][ RplsIdx[ 0 ] ] shall be greater than 0");
+      }
+#endif
 
       // POC MSB cycle signalling for LTRP
       for (int i = 0; i < rpl->getNumberOfLongtermPictures() + rpl->getNumberOfShorttermPictures(); i++)
@@ -4432,7 +4438,7 @@ void HLSyntaxReader::parseConstraintInfo(ConstraintInfo *cinfo)
     /* general */
     READ_FLAG(symbol, "gci_intra_only_constraint_flag");                 cinfo->setIntraOnlyConstraintFlag(symbol ? true : false);
     READ_FLAG(symbol, "gci_all_layers_independent_constraint_flag");     cinfo->setAllLayersIndependentConstraintFlag(symbol ? true : false);
-    READ_FLAG(symbol, "gci_one_au_only_constraint_flag");                cinfo->setOnePictureOnlyConstraintFlag(symbol ? true : false); 
+    READ_FLAG(symbol, "gci_one_au_only_constraint_flag");                cinfo->setOnePictureOnlyConstraintFlag(symbol ? true : false);
 
     /* picture format */
     READ_CODE(4, symbol, "gci_sixteen_minus_max_bitdepth_constraint_idc"); cinfo->setMaxBitDepthConstraintIdc(symbol>8 ? 16 : (16 - symbol));

@@ -56,6 +56,9 @@ public:
   SEIReader() {};
   virtual ~SEIReader() {};
   void parseSEImessage(InputBitstream* bs, SEIMessages& seis, const NalUnitType nalUnitType, const uint32_t nuh_layer_id, const uint32_t temporalId,const VPS *vps, const SPS *sps, HRD &hrd, std::ostream *pDecodedMessageOutputStream);
+#if JVET_T0055_ASPECT4
+  void parseAndExtractSEIScalableNesting (InputBitstream* bs, const NalUnitType nalUnitType, const uint32_t nuh_layer_id, std::vector<std::tuple<int, int, bool, uint32_t, uint8_t*>> *seiList);
+#endif
 
 protected:
   void xReadSEImessage                        (SEIMessages& seis, const NalUnitType nalUnitType, const uint32_t nuh_layer_id, const uint32_t temporalId, const VPS *vps, const SPS *sps, HRD &hrd, std::ostream *pDecodedMessageOutputStream);

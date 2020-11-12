@@ -134,12 +134,171 @@ void SEIReader::parseSEImessage(InputBitstream* bs, SEIMessages& seis, const Nal
   const SEIMessages fillerData = getSeisByType(seiListInCurNalu, SEI::FILLER_PAYLOAD);
   CHECK(fillerData.size() > 0 && fillerData.size() != seiListInCurNalu.size(), "When an SEI NAL unit contains an SEI message with payloadType equal to filler payload, the SEI NAL unit shall not contain any other SEI message with payloadType not equal to filler payload");
   const SEIMessages pictureTiming = getSeisByType(seiListInCurNalu, SEI::PICTURE_TIMING);
-  CHECK(hrd.getGeneralHrdParameters().getGeneralSamePicTimingInAllOlsFlag() && pictureTiming.size() > 0 && pictureTiming.size() != pictureTiming.size(),
+  CHECK(hrd.getGeneralHrdParameters().getGeneralSamePicTimingInAllOlsFlag() && pictureTiming.size() > 0 && pictureTiming.size() != seiListInCurNalu.size(),
         "When general_same_pic_timing_in_all_ols_flag is equal to 1 [...], and when an SEI NAL unit contains a non-scalable-nested SEI message with "
         "payloadType equal to 1 (PT), the SEI NAL unit shall not contain any other SEI message with payloadType not equal 1.");
 
   xReadRbspTrailingBits();
 }
+
+#if JVET_T0055_ASPECT4
+void SEIReader::parseAndExtractSEIScalableNesting (InputBitstream* bs, const NalUnitType nalUnitType, const uint32_t nuh_layer_id, std::vector<std::tuple<int, int, bool, uint32_t, uint8_t*>> *seiList)
+{
+  SEI *seiA = NULL;
+  seiA = new SEIScalableNesting;
+  SEIScalableNesting& sei = (SEIScalableNesting&)*seiA;
+  uint32_t symbol;
+  setBitstream(bs);
+
+  sei_read_flag(NULL, symbol, "sn_ols_flag"); sei.m_snOlsFlag = symbol;
+  sei_read_flag(NULL, symbol, "sn_subpic_flag"); sei.m_snSubpicFlag = symbol;
+  if (sei.m_snOlsFlag)
+  {
+    sei_read_uvlc(NULL, symbol, "sn_num_olss_minus1"); sei.m_snNumOlssMinus1 = symbol;
+    for (uint32_t i = 0; i <= sei.m_snNumOlssMinus1; i++)
+    {
+      sei_read_uvlc(NULL, symbol, "sn_ols_idx_delta_minus1[i]"); sei.m_snOlsIdxDeltaMinus1[i] = symbol;
+    }
+    for (uint32_t i = 0; i <= sei.m_snNumOlssMinus1; i++)
+    {
+      if (i == 0)
+      {
+        sei.m_snOlsIdx[i] = sei.m_snOlsIdxDeltaMinus1[i];
+      }
+      else
+      {
+        sei.m_snOlsIdx[i] = sei.m_snOlsIdxDeltaMinus1[i] + sei.m_snOlsIdxDeltaMinus1[i - 1] + 1;
+      }
+    }
+  }
+  else
+  {
+    sei_read_flag(NULL, symbol, "sn_all_layers_flag"); sei.m_snAllLayersFlag = symbol;
+    if (!sei.m_snAllLayersFlag)
+    {
+      sei_read_uvlc(NULL, symbol, "sn_num_layers_minus1"); sei.m_snNumLayersMinus1 = symbol;
+      sei.m_snLayerId[0] = nuh_layer_id;
+      for (uint32_t i = 1; i <= sei.m_snNumLayersMinus1; i++)
+      {
+        sei_read_code(NULL, 6, symbol, "sn_layer_id[i]"); sei.m_snLayerId[i] = symbol;
+      }
+    }
+  }
+  if (sei.m_snSubpicFlag)
+  {
+    sei_read_uvlc(NULL, symbol, "sn_num_subpics_minus1"); sei.m_snNumSubpics = symbol + 1;
+    sei_read_uvlc(NULL, symbol, "sn_subpic_id_len_minus1"); sei.m_snSubpicIdLen = symbol + 1;
+    sei.m_snSubpicId.resize(sei.m_snNumSubpics);
+    for (uint32_t i = 0; i < sei.m_snNumSubpics; i++)
+    {
+      sei_read_code(NULL, sei.m_snSubpicIdLen, symbol, "sn_subpic_id[i]"); sei.m_snSubpicId[i] = symbol;
+    }
+  }
+
+  sei_read_uvlc(NULL, symbol, "sn_num_seis_minus1"); sei.m_snNumSEIs = symbol + 1;
+
+  // byte alignment
+  while (m_pcBitstream->getNumBitsRead() % 8 != 0)
+  {
+    sei_read_flag(NULL, symbol, "sn_zero_bit");
+  }
+
+  // read nested SEI messages
+  for (int32_t i=0; i<sei.m_snNumSEIs; i++)
+  {
+    int payloadType = 0;
+    uint32_t val = 0;
+
+    do
+    {
+      sei_read_code(NULL, 8, val, "payload_type");
+      payloadType += val;
+    } while (val==0xFF);
+
+    uint32_t payloadSize = 0;
+    do
+    {
+      sei_read_code(NULL, 8, val, "payload_size");
+      payloadSize += val;
+    } while (val==0xFF);
+
+    uint8_t *payload = new uint8_t[payloadSize];
+    for (uint32_t j = 0; j < payloadSize; j++)
+    {
+      sei_read_code(NULL, 8, val, "payload_content");
+      payload[j] = (uint8_t)val;
+    }
+    if (sei.m_snOlsFlag)
+    {
+      for (uint32_t j = 0; j <= sei.m_snNumOlssMinus1; j++)
+      {
+        if (j == 0)
+        {
+          seiList->push_back(std::tuple<int, int, bool, uint32_t, uint8_t*>(payloadType, sei.m_snOlsIdx[j], false, payloadSize, payload));
+        }
+        else
+        {
+          uint8_t *payloadTemp = new uint8_t[payloadSize];
+          memcpy(payloadTemp, payload, payloadSize *sizeof(uint8_t));
+          seiList->push_back(std::tuple<int, int, bool, uint32_t, uint8_t*>(payloadType, sei.m_snOlsIdx[j], false, payloadSize, payloadTemp));
+        }
+      }
+    }
+    else if (sei.m_snAllLayersFlag)
+    {
+      seiList->push_back(std::tuple<int, int, bool, uint32_t, uint8_t*>(payloadType, nuh_layer_id, true, payloadSize, payload));
+    }
+    else // !sei.m_snOlsFlag && !sei.m_snAllLayersFlag
+    {
+      for (uint32_t j = 0; j <= sei.m_snNumLayersMinus1; j++)
+      {
+        if (j == 0)
+        {
+          seiList->push_back(std::tuple<int, int, bool, uint32_t, uint8_t*>(payloadType, sei.m_snLayerId[j], false, payloadSize, payload));
+        }
+        else
+        {
+          uint8_t *payloadTemp = new uint8_t[payloadSize];
+          memcpy(payloadTemp, payload, payloadSize *sizeof(uint8_t));
+          seiList->push_back(std::tuple<int, int, bool, uint32_t, uint8_t*>(payloadType, sei.m_snLayerId[j], false, payloadSize, payloadTemp));
+        }
+      }
+    }
+  }
+
+  int payloadBitsRemaining = getBitstream()->getNumBitsLeft();
+  if (payloadBitsRemaining) /* more_data_in_payload() */
+  {
+    for (; payloadBitsRemaining > 9; payloadBitsRemaining--)
+    {
+      uint32_t reservedPayloadExtensionData;
+      sei_read_code ( NULL, 1, reservedPayloadExtensionData, "reserved_payload_extension_data");
+    }
+
+    /* 2 */
+    int finalBits = getBitstream()->peekBits(payloadBitsRemaining);
+    int finalPayloadBits = 0;
+    for (int mask = 0xff; finalBits & (mask >> finalPayloadBits); finalPayloadBits++)
+    {
+      continue;
+    }
+
+    /* 3 */
+    for (; payloadBitsRemaining > 9 - finalPayloadBits; payloadBitsRemaining--)
+    {
+      uint32_t reservedPayloadExtensionData;
+      sei_read_flag ( 0, reservedPayloadExtensionData, "reserved_payload_extension_data");
+    }
+
+    uint32_t dummy;
+    sei_read_flag( 0, dummy, "payload_bit_equal_to_one"); payloadBitsRemaining--;
+    while (payloadBitsRemaining)
+    {
+      sei_read_flag( 0, dummy, "payload_bit_equal_to_zero"); payloadBitsRemaining--;
+    }
+  }
+}
+#endif
 
 void SEIReader::xReadSEImessage(SEIMessages& seis, const NalUnitType nalUnitType, const uint32_t nuh_layer_id, const uint32_t temporalId, const VPS *vps, const SPS *sps, HRD &hrd, std::ostream *pDecodedMessageOutputStream)
 {
@@ -527,7 +686,8 @@ void SEIReader::xParseSEIScalableNesting(SEIScalableNesting& sei, const NalUnitT
     if (!sei.m_snAllLayersFlag)
     {
       sei_read_uvlc(decodedMessageOutputStream, symbol, "sn_num_layers_minus1"); sei.m_snNumLayersMinus1 = symbol;
-      for (uint32_t i = 0; i <= sei.m_snNumLayersMinus1; i++)
+      sei.m_snLayerId[0] = nuhLayerId;
+      for (uint32_t i = 1; i <= sei.m_snNumLayersMinus1; i++)
       {
         sei_read_code(decodedMessageOutputStream, 6, symbol, "sn_layer_id[i]"); sei.m_snLayerId[i] = symbol;
       }
@@ -762,10 +922,10 @@ void SEIReader::xParseSEIBufferingPeriod(SEIBufferingPeriod& sei, uint32_t paylo
       }
     }
   }
-  if (sei.m_bpMaxSubLayers-1 > 0) 
+  if (sei.m_bpMaxSubLayers-1 > 0)
   {
     sei_read_flag(pDecodedMessageOutputStream, code, "bp_sublayer_dpb_output_offsets_present_flag");
-    sei.m_sublayerDpbOutputOffsetsPresentFlag = code; 
+    sei.m_sublayerDpbOutputOffsetsPresentFlag = code;
   }
   else
   {
@@ -1662,7 +1822,7 @@ void SeiCfgFileDump::write360SeiDump (std::string decoded360MessageFileName, SEI
     {
       SEIGeneralizedCubemapProjection* sei = (SEIGeneralizedCubemapProjection*)generalizedCubemapProjectionSEIs.front();
       xDumpSEIGeneralizedCubemapProjection(*sei, sps, decoded360MessageFileName);
-      m_360SEIMessageDumped = true; 
+      m_360SEIMessageDumped = true;
     }
   }
 }
