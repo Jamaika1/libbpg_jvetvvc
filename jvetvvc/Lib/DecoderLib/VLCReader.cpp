@@ -1194,22 +1194,31 @@ void HLSyntaxReader::parseGeneralHrdParameters(GeneralHrdParams *hrd)
   READ_CODE(32, symbol, "time_scale");                       hrd->setTimeScale(symbol);
   READ_FLAG(symbol, "general_nal_hrd_parameters_present_flag");           hrd->setGeneralNalHrdParametersPresentFlag(symbol == 1 ? true : false);
   READ_FLAG(symbol, "general_vcl_hrd_parameters_present_flag");           hrd->setGeneralVclHrdParametersPresentFlag(symbol == 1 ? true : false);
-  CHECK((hrd->getGeneralNalHrdParametersPresentFlag() == 0) && (hrd->getGeneralVclHrdParametersPresentFlag() == 0), "general_nal_hrd_params_present_flag and general_vcl_hrd_params_present_flag in each general_hrd_parameters( ) syntax structure shall not be both equal to 0.");
-  READ_FLAG(symbol, "general_same_pic_timing_in_all_ols_flag");           hrd->setGeneralSamePicTimingInAllOlsFlag(symbol == 1 ? true : false);
-  READ_FLAG(symbol, "general_decoding_unit_hrd_params_present_flag");     hrd->setGeneralDecodingUnitHrdParamsPresentFlag(symbol == 1 ? true : false);
-  if (hrd->getGeneralDecodingUnitHrdParamsPresentFlag())
+#if FIX_TICKET_1407
+  if (hrd->getGeneralNalHrdParametersPresentFlag() || hrd->getGeneralVclHrdParametersPresentFlag())
   {
-    READ_CODE(8, symbol, "tick_divisor_minus2");                        hrd->setTickDivisorMinus2(symbol);
+#else
+    CHECK((hrd->getGeneralNalHrdParametersPresentFlag() == 0) && (hrd->getGeneralVclHrdParametersPresentFlag() == 0), "general_nal_hrd_params_present_flag and general_vcl_hrd_params_present_flag in each general_hrd_parameters( ) syntax structure shall not be both equal to 0.");
+#endif
+    READ_FLAG(symbol, "general_same_pic_timing_in_all_ols_flag");           hrd->setGeneralSamePicTimingInAllOlsFlag(symbol == 1 ? true : false);
+    READ_FLAG(symbol, "general_decoding_unit_hrd_params_present_flag");     hrd->setGeneralDecodingUnitHrdParamsPresentFlag(symbol == 1 ? true : false);
+    if (hrd->getGeneralDecodingUnitHrdParamsPresentFlag())
+    {
+      READ_CODE(8, symbol, "tick_divisor_minus2");                        hrd->setTickDivisorMinus2(symbol);
+    }
+    READ_CODE(4, symbol, "bit_rate_scale");                       hrd->setBitRateScale(symbol);
+    READ_CODE(4, symbol, "cpb_size_scale");                       hrd->setCpbSizeScale(symbol);
+    if (hrd->getGeneralDecodingUnitHrdParamsPresentFlag())
+    {
+      READ_CODE(4, symbol, "cpb_size_du_scale");                  hrd->setCpbSizeDuScale(symbol);
+    }
+    READ_UVLC(symbol, "hrd_cpb_cnt_minus1");                      hrd->setHrdCpbCntMinus1(symbol);
+    CHECK(symbol > 31,"The value of hrd_cpb_cnt_minus1 shall be in the range of 0 to 31, inclusive");
+#if FIX_TICKET_1407
   }
-  READ_CODE(4, symbol, "bit_rate_scale");                       hrd->setBitRateScale(symbol);
-  READ_CODE(4, symbol, "cpb_size_scale");                       hrd->setCpbSizeScale(symbol);
-  if (hrd->getGeneralDecodingUnitHrdParamsPresentFlag())
-  {
-    READ_CODE(4, symbol, "cpb_size_du_scale");                  hrd->setCpbSizeDuScale(symbol);
-  }
-  READ_UVLC(symbol, "hrd_cpb_cnt_minus1");                      hrd->setHrdCpbCntMinus1(symbol);
-  CHECK(symbol > 31,"The value of hrd_cpb_cnt_minus1 shall be in the range of 0 to 31, inclusive");
+#endif
 }
+
 void HLSyntaxReader::parseOlsHrdParameters(GeneralHrdParams * generalHrd, OlsHrdParams *olsHrd, uint32_t firstSubLayer, uint32_t maxNumSubLayersMinus1)
 {
   uint32_t  symbol;
@@ -1233,7 +1242,11 @@ void HLSyntaxReader::parseOlsHrdParameters(GeneralHrdParams * generalHrd, OlsHrd
     {
       READ_UVLC(symbol, "elemental_duration_in_tc_minus1");             hrd->setElementDurationInTcMinus1(symbol);
     }
+#if FIX_TICKET_1407
+    else if((generalHrd->getGeneralNalHrdParametersPresentFlag() || generalHrd->getGeneralVclHrdParametersPresentFlag()) && generalHrd->getHrdCpbCntMinus1() == 0)
+#else
     else if(generalHrd->getHrdCpbCntMinus1() == 0)
+#endif
     {
       READ_FLAG(symbol, "low_delay_hrd_flag");                      hrd->setLowDelayHrdFlag(symbol == 1 ? true : false);
     }
@@ -1300,6 +1313,7 @@ void HLSyntaxReader::dpb_parameters(int maxSubLayersMinus1, bool subLayerInfoFla
     pcSPS->setMaxDecPicBuffering(code + 1, i);
     READ_UVLC(code, "dpb_max_num_reorder_pics[i]");
     pcSPS->setMaxNumReorderPics(code, i);
+    CHECK( pcSPS->getMaxNumReorderPics(i) >= pcSPS->getMaxDecPicBuffering(i), "The value of dpb_max_num_reorder_pics[ i ] shall be in the range of 0 to dpb_max_dec_pic_buffering_minus1[ i ], inclusive" );
     READ_UVLC(code, "dpb_max_latency_increase_plus1[i]");
     pcSPS->setMaxLatencyIncreasePlus1(code, i);
   }
@@ -1475,6 +1489,13 @@ void HLSyntaxReader::parseSPS(SPS* pcSPS)
           READ_FLAG(uiCode, "sps_loop_filter_across_subpic_enabled_flag[ i ]");
           pcSPS->setLoopFilterAcrossSubpicEnabledFlag(picIdx, uiCode);
         }
+#if FIX_TICKET_1299
+        else
+        {
+          pcSPS->setSubPicTreatedAsPicFlag(picIdx, 1);
+          pcSPS->setLoopFilterAcrossSubpicEnabledFlag(picIdx, 0);
+        }
+#endif
       }
     }
 
@@ -3209,7 +3230,11 @@ void HLSyntaxReader::parsePictureHeader( PicHeader* picHeader, ParameterSetManag
 
     if( (pps->getUseWP() || pps->getWPBiPred()) && pps->getWpInfoInPhFlag() )
     {
+#if FIX_TICKET_1404
+      parsePredWeightTable(picHeader, pps, sps);
+#else
       parsePredWeightTable(picHeader, sps);
+#endif
     }
   }
   // inherit constraint values from SPS
@@ -4768,7 +4793,11 @@ void HLSyntaxReader::parsePredWeightTable( Slice* pcSlice, const SPS *sps )
   CHECK(uiTotalSignalledWeightFlags>24, "Too many weight flag signalled");
 }
 
+#if FIX_TICKET_1404
+void HLSyntaxReader::parsePredWeightTable(PicHeader *picHeader, const PPS *pps, const SPS *sps)
+#else
 void HLSyntaxReader::parsePredWeightTable(PicHeader *picHeader, const SPS *sps)
+#endif
 {
   WPScalingParam *   wp;
   const ChromaFormat chFmt                     = sps->getChromaFormatIdc();
@@ -4899,7 +4928,11 @@ void HLSyntaxReader::parsePredWeightTable(PicHeader *picHeader, const SPS *sps)
 
     if (numRef == 0)
     {
+#if FIX_TICKET_1404
+      if (pps->getWPBiPred() && picHeader->getRPL(1)->getNumRefEntries() > 0)
+#else
       if (picHeader->getRPL(1)->getNumRefEntries() > 0)
+#endif
       {
         READ_UVLC(numLxWeights, "num_l1_weights");
       }

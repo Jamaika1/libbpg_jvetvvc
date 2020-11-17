@@ -1328,9 +1328,13 @@ void DecLib::checkSeiContentInAccessUnit()
       else
       {
         bool bSameLayer = false;
-        if (!(payLoadNested1 xor payLoadNested2))
+        if (!payLoadNested1 && !payLoadNested2)
         {
           bSameLayer = (payLoadLayerId1 == payLoadLayerId2);
+        }
+        else if (payLoadNested1 && payLoadNested2)
+        {
+          bSameLayer = true;
         }
         else
         {

@@ -605,6 +605,12 @@ void SEIReader::xParseSEIDecodedPictureHash(SEIDecodedPictureHash& sei, uint32_t
   uint32_t val;
   sei_read_code( pDecodedMessageOutputStream, 8, val, "dph_sei_hash_type");
   sei.method = static_cast<HashType>(val); bytesRead++;
+#if FIX_TICKET_1405
+  sei_read_code( pDecodedMessageOutputStream, 1, val, "dph_sei_single_component_flag");
+  sei.singleCompFlag = val;
+  sei_read_code( pDecodedMessageOutputStream, 7, val, "dph_sei_reserved_zero_7bits");
+  bytesRead++;
+#endif
 
   const char *traceString="\0";
   switch (sei.method)
@@ -1293,7 +1299,11 @@ void SEIReader::xParseSEIFrameFieldinfo(SEIFrameFieldInfo& sei, const SEIPicture
       sei_read_flag( pDecodedMessageOutputStream, symbol,  "ffi_top_field_first_flag" );
       sei.m_topFieldFirstFlag = symbol;
     }
-    sei_read_uvlc( pDecodedMessageOutputStream, symbol,    "ffi_display_elemental_periods_minus1" );
+#if FIX_TICKET_1406
+    sei_read_code( pDecodedMessageOutputStream, 8, symbol, "ffi_display_elemental_periods_minus1" );
+#else
+    sei_read_uvlc( pDecodedMessageOutputStream, symbol, "ffi_display_elemental_periods_minus1" );
+#endif
     sei.m_displayElementalPeriodsMinus1 = symbol;
     if( pt.m_ptDisplayElementalPeriodsMinus1 != sei.m_displayElementalPeriodsMinus1 )
       msg( WARNING, "Warning: ffi_display_elemental_periods_minus1 is different in picture timing and frame field information SEI messages!");
