@@ -233,6 +233,10 @@ void SEIWriter::xWriteSEIDecodedPictureHash(const SEIDecodedPictureHash& sei)
   if (traceString != 0) //use of this variable is needed to avoid a compiler error with G++ 4.6.1
   {
     WRITE_CODE(sei.method, 8, "dph_sei_hash_type");
+#if FIX_TICKET_1405
+    WRITE_CODE(sei.singleCompFlag, 1, "dph_sei_single_component_flag");
+    WRITE_CODE(0, 7, "dph_sei_reserved_zero_7bits");
+#endif
     for(uint32_t i=0; i<uint32_t(sei.m_pictureHash.hash.size()); i++)
     {
       WRITE_CODE(sei.m_pictureHash.hash[i], 8, traceString);
@@ -476,7 +480,11 @@ void SEIWriter::xWriteSEIFrameFieldInfo(const SEIFrameFieldInfo& sei)
     {
       WRITE_FLAG( sei.m_topFieldFirstFlag ? 1 : 0,            "ffi_top_field_first_flag" );
     }
-    WRITE_UVLC( sei.m_displayElementalPeriodsMinus1,          "ffi_display_elemental_periods_minus1" );
+#if FIX_TICKET_1406
+    WRITE_CODE( sei.m_displayElementalPeriodsMinus1, 8,       "ffi_display_elemental_periods_minus1" );
+#else
+    WRITE_CODE( sei.m_displayElementalPeriodsMinus1,          "ffi_display_elemental_periods_minus1" );
+#endif
   }
   WRITE_CODE( sei.m_sourceScanType, 2,                        "ffi_source_scan_type" );
   WRITE_FLAG( sei.m_duplicateFlag ? 1 : 0,                    "ffi_duplicate_flag" );
